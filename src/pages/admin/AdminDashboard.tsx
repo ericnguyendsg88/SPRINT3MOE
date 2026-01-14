@@ -302,95 +302,41 @@ export default function AdminDashboard() {
                 <Activity className="h-5 w-5 text-accent" />
                 <div>
                   <CardTitle>Recent Activity</CardTitle>
-                  <CardDescription>Latest enrollments and account creations</CardDescription>
+                  <CardDescription>Latest account creations</CardDescription>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
-              <Tabs defaultValue="enrollments" className="w-full">
-                <TabsList className="mb-4">
-                  <TabsTrigger value="enrollments" className="gap-2">
-                    <GraduationCap className="h-4 w-4" />
-                    Latest Enrollments
-                  </TabsTrigger>
-                  <TabsTrigger value="accounts" className="gap-2">
-                    <UserPlus className="h-4 w-4" />
-                    Latest Accounts
-                  </TabsTrigger>
-                </TabsList>
-                <TabsContent value="enrollments">
-                  <DataTable 
-                    data={recentEnrollments} 
-                    columns={[
-                      { 
-                        key: 'course_name', 
-                        header: 'Course Name',
-                        render: (item: typeof enrollments[0]) => (
-                          <span className="font-medium">{item.courses?.name || 'Unknown'}</span>
-                        )
-                      },
-                      { 
-                        key: 'course_id', 
-                        header: 'Course ID',
-                        render: (item: typeof enrollments[0]) => (
-                          <span className="text-muted-foreground text-sm">{item.course_id.slice(0, 8)}...</span>
-                        )
-                      },
-                      { 
-                        key: 'student_name', 
-                        header: 'Student Name',
-                        render: (item: typeof enrollments[0]) => {
-                          const account = accountHolders.find(a => a.id === item.account_id);
-                          return <span className="font-medium">{account?.name || 'Unknown'}</span>;
-                        }
-                      },
-                      { 
-                        key: 'enrollment_date', 
-                        header: 'Enrolled Date',
-                        render: (item: typeof enrollments[0]) => (
-                          <span className="text-sm text-muted-foreground">
-                            {formatDate(item.enrollment_date)}
-                          </span>
-                        )
-                      },
-                    ]}
-                    emptyMessage="No recent enrollments"
-                    onRowClick={(enrollment) => navigate(`/admin/courses/${enrollment.course_id}`)}
-                  />
-                </TabsContent>
-                <TabsContent value="accounts">
-                  <DataTable 
-                    data={recentAccounts} 
-                    columns={[
-                      { 
-                        key: 'name', 
-                        header: 'Name',
-                        render: (item: typeof accountHolders[0]) => (
-                          <span className="font-medium">{item.name}</span>
-                        )
-                      },
-                      { 
-                        key: 'email', 
-                        header: 'Email',
-                        render: (item: typeof accountHolders[0]) => (
-                          <span className="text-muted-foreground">{item.email}</span>
-                        )
-                      },
-                      { 
-                        key: 'created_at', 
-                        header: 'Created',
-                        render: (item: typeof accountHolders[0]) => (
-                          <span className="text-sm text-muted-foreground">
-                            {formatDate(item.created_at)}
-                          </span>
-                        )
-                      },
-                    ]}
-                    emptyMessage="No recent accounts"
-                    onRowClick={(account) => navigate(`/admin/accounts/${account.id}`)}
-                  />
-                </TabsContent>
-              </Tabs>
+              <DataTable 
+                data={recentAccounts} 
+                columns={[
+                  { 
+                    key: 'name', 
+                    header: 'Name',
+                    render: (item: typeof accountHolders[0]) => (
+                      <span className="font-medium">{item.name}</span>
+                    )
+                  },
+                  { 
+                    key: 'email', 
+                    header: 'Email',
+                    render: (item: typeof accountHolders[0]) => (
+                      <span className="text-muted-foreground">{item.email}</span>
+                    )
+                  },
+                  { 
+                    key: 'created_at', 
+                    header: 'Created',
+                    render: (item: typeof accountHolders[0]) => (
+                      <span className="text-sm text-muted-foreground">
+                        {formatDate(item.created_at)}
+                      </span>
+                    )
+                  },
+                ]}
+                emptyMessage="No recent accounts"
+                onRowClick={(account) => navigate(`/admin/accounts/${account.id}`)}
+              />
             </CardContent>
           </Card>
         </ResizableSection>
