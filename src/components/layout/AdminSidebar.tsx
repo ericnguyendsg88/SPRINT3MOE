@@ -32,9 +32,7 @@ const menuItems: {
   { 
     label: 'Top-up Management', 
     icon: Wallet, 
-    path: '/admin/topup',
-    disabled: true,
-    devLabel: 'Dev'
+    path: '/admin/topup'
   },
   { 
     label: 'Course Management', 
