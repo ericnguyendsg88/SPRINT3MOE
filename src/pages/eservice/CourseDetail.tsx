@@ -271,11 +271,22 @@ export default function EServiceCourseDetail() {
     {
       key: 'amount',
       header: 'Amount',
-      render: (item: typeof courseCharges[0]) => (
-        <span className="font-semibold text-foreground">
-          ${Number(item.amount).toFixed(2)}
-        </span>
-      )
+      render: (item: typeof courseCharges[0]) => {
+        const chargeAmount = Number(item.amount);
+        const fullFee = Number(course?.fee || 0);
+        const isProrated = chargeAmount < fullFee && chargeAmount > 0;
+        
+        return (
+          <div>
+            <span className="font-semibold text-foreground">
+              ${chargeAmount.toFixed(2)}
+            </span>
+            {isProrated && (
+              <p className="text-xs text-primary mt-0.5">Pro-rated</p>
+            )}
+          </div>
+        );
+      }
     },
     {
       key: 'billing_cycle',
