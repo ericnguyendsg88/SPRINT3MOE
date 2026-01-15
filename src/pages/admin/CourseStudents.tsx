@@ -327,12 +327,12 @@ export default function CourseStudents() {
                   <div className="rounded-lg border border-border bg-muted/50 p-4 space-y-2">
                     <div className="flex items-center gap-2 text-sm font-medium text-foreground">
                       <Info className="h-4 w-4 text-primary" />
-                      First Month Fee
+                      First Billing Period Fee
                     </div>
                     {proRateInfo.isProrated ? (
                       <>
                         <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">Full monthly fee:</span>
+                          <span className="text-muted-foreground">Full {proRateInfo.billingPeriodLabel} fee:</span>
                           <span className="line-through text-muted-foreground">${proRateInfo.fullFee.toFixed(2)}</span>
                         </div>
                         <div className="flex items-center justify-between text-sm">
@@ -342,7 +342,7 @@ export default function CourseStudents() {
                           <span className="font-semibold text-foreground">${proRateInfo.proratedFee.toFixed(2)}</span>
                         </div>
                         <div className="text-xs text-success mt-1">
-                          Student saves ${proRateInfo.savingsAmount.toFixed(2)} this month
+                          Student saves ${proRateInfo.savingsAmount.toFixed(2)} this {proRateInfo.billingPeriodLabel}
                         </div>
                       </>
                     ) : (
@@ -352,7 +352,7 @@ export default function CourseStudents() {
                       </div>
                     )}
                     <p className="text-xs text-muted-foreground pt-1 border-t border-border">
-                      Subsequent months will be charged at the full rate of ${course.fee.toFixed(2)}
+                      Subsequent {proRateInfo.billingPeriodLabel}s will be charged at the full rate of ${course.fee.toFixed(2)}
                     </p>
                   </div>
                 );
