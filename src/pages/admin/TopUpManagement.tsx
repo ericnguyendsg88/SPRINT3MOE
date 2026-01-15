@@ -626,10 +626,8 @@ export default function TopUpManagement() {
   const handleCancelSchedule = async () => {
     if (!selectedScheduleDetail) return;
     try {
-      await updateScheduleMutation.mutateAsync({
-        id: selectedScheduleDetail.id,
-        status: 'cancelled',
-      });
+      // Delete the schedule instead of setting status to cancelled (not supported by DB enum)
+      await deleteScheduleMutation.mutateAsync(selectedScheduleDetail.id);
       toast.success('Top-up order cancelled successfully');
       setCancelScheduleConfirmOpen(false);
       setShowDetailModal(false);

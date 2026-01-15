@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Pencil, Users, Calendar, DollarSign, MapPin, GraduationCap, Save, X, UserPlus, Trash2, Search, UserMinus, Lock, Building, CreditCard, RefreshCw, CheckCircle } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DateInput } from '@/components/ui/date-input';
@@ -497,13 +498,8 @@ export default function CourseDetail() {
                 <ArrowLeft className="h-5 w-5" />
               </Button>
               <div className="flex-1">
-                <h1 className="text-2xl font-bold text-foreground">{course.name}</h1>
+              <h1 className="text-2xl font-bold text-foreground">{course.name}</h1>
                 <div className="flex items-center gap-2 mt-1">
-                  {course.course_code && (
-                    <span className="text-sm font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded">
-                      {course.course_code}
-                    </span>
-                  )}
                   <span className="text-muted-foreground">{course.provider}</span>
                 </div>
               </div>
