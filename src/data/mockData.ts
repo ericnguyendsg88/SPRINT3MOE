@@ -270,7 +270,7 @@ export const mockCourseCharges: CourseCharge[] = [
     courseName: 'Python Programming Fundamentals',
     amount: 250.00,
     dueDate: '2024-01-31',
-    status: 'outstanding',
+    status: 'overdue',
   },
 ];
 

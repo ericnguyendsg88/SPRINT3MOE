@@ -132,8 +132,8 @@ export function calculatePaymentStatus(
     };
   }
 
-  // Check if all charges are fully paid
-  const allPaid = charges.every(c => c.status === 'fully_paid' || c.status === 'paid');
+  // Check if all charges are fully paid (using 'clear' status from database)
+  const allPaid = charges.every(c => c.status === 'clear');
   
   if (allPaid) {
     // Check if there's a next billing date coming (course is ongoing)

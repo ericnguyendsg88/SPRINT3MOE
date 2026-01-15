@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Search, UserMinus } from 'lucide-react';
+import { ArrowLeft, Plus, Search, UserMinus, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,6 +10,7 @@ import { useEnrollments, useCreateEnrollment, useDeleteEnrollment } from '@/hook
 import { useAccountHolders } from '@/hooks/useAccountHolders';
 import { useCourseCharges, useCreateCourseCharge } from '@/hooks/useCourseCharges';
 import { formatDate } from '@/lib/dateUtils';
+import { calculateProratedFee, getProratingInfo } from '@/lib/billingUtils';
 import {
   Table,
   TableBody,
@@ -191,13 +192,21 @@ export default function CourseStudents() {
         status: 'active',
       });
 
-      // Auto-create course charge
+      // Auto-create course charge with pro-rated fee
+      const enrollmentDate = new Date();
+      const proratedAmount = calculateProratedFee(
+        course.fee,
+        enrollmentDate,
+        course.course_run_start,
+        course.billing_cycle
+      );
+      
       try {
         await createCourseChargeMutation.mutateAsync({
           account_id: selectedStudentId,
           course_id: course.id,
           course_name: course.name,
-          amount: course.fee,
+          amount: proratedAmount,
           amount_paid: 0,
           due_date: calculateDueDate(course.course_run_start, course.billing_cycle),
           status: 'outstanding',
@@ -303,6 +312,51 @@ export default function CourseStudents() {
                   </SelectContent>
                 </Select>
               </div>
+              
+              {/* Pro-rating Info */}
+              {selectedStudentId && (() => {
+                const enrollmentDate = new Date();
+                const proRateInfo = getProratingInfo(
+                  course.fee,
+                  enrollmentDate,
+                  course.course_run_start,
+                  course.billing_cycle
+                );
+                
+                return (
+                  <div className="rounded-lg border border-border bg-muted/50 p-4 space-y-2">
+                    <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                      <Info className="h-4 w-4 text-primary" />
+                      First Month Fee
+                    </div>
+                    {proRateInfo.isProrated ? (
+                      <>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Full monthly fee:</span>
+                          <span className="line-through text-muted-foreground">${proRateInfo.fullFee.toFixed(2)}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">
+                            Pro-rated ({proRateInfo.daysRemaining} of {proRateInfo.totalDays} days):
+                          </span>
+                          <span className="font-semibold text-foreground">${proRateInfo.proratedFee.toFixed(2)}</span>
+                        </div>
+                        <div className="text-xs text-success mt-1">
+                          Student saves ${proRateInfo.savingsAmount.toFixed(2)} this month
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Amount to charge:</span>
+                        <span className="font-semibold text-foreground">${proRateInfo.fullFee.toFixed(2)}</span>
+                      </div>
+                    )}
+                    <p className="text-xs text-muted-foreground pt-1 border-t border-border">
+                      Subsequent months will be charged at the full rate of ${course.fee.toFixed(2)}
+                    </p>
+                  </div>
+                );
+              })()}
             </div>
             <div className="flex justify-end gap-3">
               <Button 
