@@ -15,7 +15,7 @@ import { formatDate, getBillingCycleLabel, getUpcomingBillingCycles } from '@/li
 import { usePageLayout } from '@/hooks/usePageLayout';
 import { FieldEditor, FieldDefinition } from '@/components/editor/FieldEditor';
 import { EditModeToggle } from '@/components/editor/EditModeToggle';
-
+import { formatCurrency } from '@/lib/utils';
 type BillingCycle = 'monthly' | 'quarterly' | 'biannually' | 'yearly' | 'one_time';
 
 const billingCycleLabels: Record<BillingCycle, string> = {
@@ -279,7 +279,7 @@ export default function EServiceCourseDetail() {
         return (
           <div>
             <span className="font-semibold text-foreground">
-              ${chargeAmount.toFixed(2)}
+              ${formatCurrency(chargeAmount)}
             </span>
             {isProrated && (
               <p className="text-xs text-primary mt-0.5">Pro-rated</p>
@@ -404,7 +404,7 @@ export default function EServiceCourseDetail() {
       header: 'Amount',
       render: (item: typeof courseCharges[0]) => (
         <span className="font-semibold text-success">
-          ${Number(item.amount).toFixed(2)}
+          ${formatCurrency(Number(item.amount))}
         </span>
       )
     },
@@ -454,7 +454,7 @@ export default function EServiceCourseDetail() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Outstanding</p>
-                <p className="text-2xl font-bold text-warning">${outstanding.toFixed(2)}</p>
+                <p className="text-2xl font-bold text-warning">${formatCurrency(outstanding)}</p>
               </div>
             </div>
           </CardContent>
@@ -468,7 +468,7 @@ export default function EServiceCourseDetail() {
               <div>
                 <p className="text-sm text-muted-foreground">Total Fee</p>
                 <p className="text-2xl font-bold">
-                  ${totalCourseFee.toFixed(2)}
+                  ${formatCurrency(totalCourseFee)}
                 </p>
               </div>
             </div>
@@ -538,8 +538,8 @@ export default function EServiceCourseDetail() {
                   fee: {
                     icon: <DollarSign className="h-5 w-5 text-muted-foreground mt-0.5" />,
                     value: isOneTimePayment(course.billing_cycle) 
-                      ? `$${Number(course.fee).toFixed(2)}` 
-                      : `$${Number(course.fee).toFixed(2)} / ${billingCycleLabels[course.billing_cycle as BillingCycle]}`,
+                      ? `$${formatCurrency(Number(course.fee))}` 
+                      : `$${formatCurrency(Number(course.fee))} / ${billingCycleLabels[course.billing_cycle as BillingCycle]}`,
                   },
                 };
                 const config = fieldConfig[field.key];
@@ -609,7 +609,7 @@ export default function EServiceCourseDetail() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold text-foreground">${Number(course.fee).toFixed(2)}</p>
+                    <p className="font-semibold text-foreground">${formatCurrency(Number(course.fee))}</p>
                     <StatusBadge status="scheduled" />
                   </div>
                 </div>
