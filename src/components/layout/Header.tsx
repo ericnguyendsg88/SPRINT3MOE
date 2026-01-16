@@ -1,6 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { GraduationCap, Shield, User } from 'lucide-react';
+import { Shield, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import logo from '@/assets/logo.png';
 
 export function Header() {
   const location = useLocation();
@@ -31,7 +32,7 @@ export function Header() {
             )}
             title={`Switch to ${isAdmin ? 'e-Service' : 'Admin'} Portal`}
           >
-            <GraduationCap className="h-5 w-5 text-primary-foreground" />
+            <img src={logo} alt="EduCredit Logo" className="h-8 w-8 rounded-lg" />
           </button>
           <Link to="/" className="flex flex-col transition-smooth hover:opacity-80">
             <span className="text-lg font-semibold text-foreground">EduCredit</span>
