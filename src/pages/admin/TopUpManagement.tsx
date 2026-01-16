@@ -427,9 +427,13 @@ export default function TopUpManagement() {
           status: 'completed',
         });
         
+<<<<<<< HEAD
         toast.success(`$${formatCurrency(amount, 0)} credited to ${account.name}'s account`, {
           description: `Reference ID: ${referenceId}`,
         });
+=======
+        toast.success(`$${formatCurrency(amount)} credited to ${account.name}'s account`);
+>>>>>>> 785df4ae9f8bc1b93cd135d2c9890aa90cda1592
       } else {
         toast.success('Top-up scheduled successfully');
       }
@@ -674,10 +678,8 @@ export default function TopUpManagement() {
   const handleCancelSchedule = async () => {
     if (!selectedScheduleDetail) return;
     try {
-      await updateScheduleMutation.mutateAsync({
-        id: selectedScheduleDetail.id,
-        status: 'cancelled',
-      });
+      // Delete the schedule instead of setting status to cancelled (not supported by DB enum)
+      await deleteScheduleMutation.mutateAsync(selectedScheduleDetail.id);
       toast.success('Top-up order cancelled successfully');
       setCancelScheduleConfirmOpen(false);
       setShowDetailModal(false);
@@ -899,7 +901,7 @@ export default function TopUpManagement() {
         </button>
       ),
       render: (item: typeof topUpSchedules[0]) => (
-        <span className="font-semibold text-success">${formatCurrency(Number(item.amount), 0)}</span>
+        <span className="font-semibold text-success">${formatCurrency(Number(item.amount))}</span>
       )
     },
     { 
@@ -1387,9 +1389,43 @@ export default function TopUpManagement() {
                     <div className="bg-muted/50 p-3 rounded-lg mb-2">
                       <div className="text-sm font-medium">{account.name}</div>
                       <div className="text-xs text-muted-foreground">{account.nric}</div>
+<<<<<<< HEAD
                     </div>
                   );
                 })()}
+=======
+                      <div className="text-xs text-muted-foreground">Balance: ${formatCurrency(Number(account.balance))}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div className="grid gap-2">
+              <Label>Top-up Amount ($)</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">S$</span>
+                <Input
+                  type="number"
+                  placeholder="Enter amount"
+                  value={topUpAmount}
+                  onChange={(e) => setTopUpAmount(e.target.value)}
+                  min="0"
+                  step="0.01"
+                  className="pl-9"
+                />
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="individual-execute-now"
+                checked={executeNow}
+                onCheckedChange={(checked) => setExecuteNow(checked === true)}
+              />
+              <Label htmlFor="individual-execute-now">Execute immediately</Label>
+            </div>
+            {!executeNow && (
+              <div className="grid grid-cols-2 gap-3">
+>>>>>>> 785df4ae9f8bc1b93cd135d2c9890aa90cda1592
                 <div className="grid gap-2">
                   <Label>Description <span className="text-destructive">*</span></Label>
                   <Input
@@ -1805,17 +1841,17 @@ export default function TopUpManagement() {
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Current Balance</p>
-                  <p className="font-medium">S${formatCurrency(Number(accountHolders.find(a => a.id === selectedAccount)?.balance), 0)}</p>
+                  <p className="font-medium">S${formatCurrency(Number(accountHolders.find(a => a.id === selectedAccount)?.balance))}</p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Top-up Amount</p>
-                  <p className="font-semibold text-success">S${formatCurrency(parseFloat(topUpAmount) || 0, 0)}</p>
+                  <p className="font-semibold text-success">S${formatCurrency(parseFloat(topUpAmount) || 0)}</p>
                 </div>
               </div>
               <div className="p-4 bg-muted/50 rounded-lg">
                 <p className="text-xs text-muted-foreground">New Balance</p>
                 <p className="text-lg font-semibold text-success">
-                  S${formatCurrency(Number(accountHolders.find(a => a.id === selectedAccount)?.balance) + (parseFloat(topUpAmount) || 0), 0)}
+                  S${formatCurrency(Number(accountHolders.find(a => a.id === selectedAccount)?.balance) + (parseFloat(topUpAmount) || 0))}
                 </p>
               </div>
               <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
@@ -1860,7 +1896,7 @@ export default function TopUpManagement() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Amount per Account</p>
-                <p className="font-semibold text-success">S${formatCurrency(parseFloat(batchAmount) || 0, 0)}</p>
+                <p className="font-semibold text-success">S${formatCurrency(parseFloat(batchAmount) || 0)}</p>
               </div>
               <div className="col-span-2">
                 <p className="text-xs text-muted-foreground">Description</p>
@@ -1878,7 +1914,7 @@ export default function TopUpManagement() {
             <div className="p-4 bg-muted/50 rounded-lg">
               <p className="text-xs text-muted-foreground">Total Disbursement</p>
               <p className="text-lg font-semibold text-success">
-                S${formatCurrency((parseFloat(batchAmount) || 0) * getTargetedAccounts().length, 0)}
+                S${formatCurrency((parseFloat(batchAmount) || 0) * getTargetedAccounts().length)}
               </p>
             </div>
 
@@ -1970,7 +2006,7 @@ export default function TopUpManagement() {
                         <p className="font-medium text-foreground">{index + 1}. {account.name}</p>
                         <p className="text-sm text-muted-foreground">NRIC: {account.nric}</p>
                         <p className="text-xs text-muted-foreground mt-1">
-                          Balance: S${formatCurrency(Number(account.balance), 0)} | Status: {account.status}
+                          Balance: S${formatCurrency(Number(account.balance))} | Status: {account.status}
                         </p>
                       </div>
                     </div>
@@ -2062,7 +2098,7 @@ export default function TopUpManagement() {
               <div className="grid grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
                 <div>
                   <p className="text-xs text-muted-foreground">Amount per Account</p>
-                  <p className="font-semibold text-success text-lg">S${formatCurrency(Number(selectedScheduleDetail.amount), 0)}</p>
+                  <p className="font-semibold text-success text-lg">S${formatCurrency(Number(selectedScheduleDetail.amount))}</p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Status</p>
@@ -2113,7 +2149,7 @@ export default function TopUpManagement() {
                 <div className="p-4 bg-success/10 rounded-lg border border-success/20">
                   <p className="text-xs text-muted-foreground">Total Disbursement</p>
                   <p className="font-semibold text-success text-lg">
-                    S${formatCurrency(Number(selectedScheduleDetail.amount) * (selectedScheduleDetail.eligible_count || 0), 0)}
+                    S${formatCurrency(Number(selectedScheduleDetail.amount) * (selectedScheduleDetail.eligible_count || 0))}
                   </p>
                 </div>
               )}
@@ -2156,7 +2192,7 @@ export default function TopUpManagement() {
                                 </div>
                                 <div className="text-right">
                                   <p className="text-xs text-muted-foreground">Balance</p>
-                                  <p className="font-semibold text-sm">S${formatCurrency(Number(account.balance), 0)}</p>
+                                  <p className="font-semibold text-sm">S${formatCurrency(Number(account.balance))}</p>
                                 </div>
                               </div>
                               
@@ -2240,7 +2276,7 @@ export default function TopUpManagement() {
                       : selectedScheduleDetail.account_name}
                   </p>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Amount: S${formatCurrency(Number(selectedScheduleDetail.amount), 0)}
+                    Amount: S${formatCurrency(Number(selectedScheduleDetail.amount))}
                     {selectedScheduleDetail.type === 'batch' && (
                       <> • {selectedScheduleDetail.eligible_count} account(s)</>
                     )}
@@ -2286,11 +2322,11 @@ export default function TopUpManagement() {
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground">Amount per Account</p>
-                      <p className="text-2xl font-bold text-success">S${formatCurrency(Number(selectedScheduleDetail.amount), 0)}</p>
+                      <p className="text-2xl font-bold text-success">S${formatCurrency(Number(selectedScheduleDetail.amount))}</p>
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground">Total Disbursement</p>
-                      <p className="text-2xl font-bold text-success">S${formatCurrency(Number(selectedScheduleDetail.amount) * eligibleAccounts.length, 0)}</p>
+                      <p className="text-2xl font-bold text-success">S${formatCurrency(Number(selectedScheduleDetail.amount) * eligibleAccounts.length)}</p>
                     </div>
                   </div>
 
@@ -2319,7 +2355,7 @@ export default function TopUpManagement() {
                             </div>
                             <div className="text-right">
                               <p className="text-xs text-muted-foreground">Current Balance</p>
-                              <p className="font-semibold text-lg">S${formatCurrency(Number(account.balance), 0)}</p>
+                              <p className="font-semibold text-lg">S${formatCurrency(Number(account.balance))}</p>
                             </div>
                           </div>
                           
@@ -2355,9 +2391,9 @@ export default function TopUpManagement() {
                           <div className="mt-3 pt-3 border-t bg-success/5 -mx-4 -mb-4 px-4 py-2 rounded-b-lg">
                             <div className="flex items-center justify-between">
                               <p className="text-xs text-muted-foreground">Top-up Amount:</p>
-                              <p className="text-sm font-semibold text-success">+S${formatCurrency(Number(selectedScheduleDetail.amount), 0)}</p>
+                              <p className="text-sm font-semibold text-success">+S${formatCurrency(Number(selectedScheduleDetail.amount))}</p>
                               <p className="text-xs text-muted-foreground">New Balance:</p>
-                              <p className="text-sm font-semibold text-success">S${formatCurrency(Number(account.balance) + Number(selectedScheduleDetail.amount), 0)}</p>
+                              <p className="text-sm font-semibold text-success">S${formatCurrency(Number(account.balance) + Number(selectedScheduleDetail.amount))}</p>
                             </div>
                           </div>
                         </div>

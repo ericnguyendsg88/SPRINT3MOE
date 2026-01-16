@@ -28,6 +28,7 @@ import { CustomSectionRenderer } from '@/components/editor/CustomSectionRenderer
 import { ColumnEditor, AvailableField } from '@/components/editor/ColumnEditor';
 import { ColumnDefinition, LayoutItem } from '@/hooks/usePageLayout';
 import { formatDate } from '@/lib/dateUtils';
+import { formatCurrency } from '@/lib/utils';
 
 const SECTION_IDS = ['topup-tracking', 'recent-activity'];
 
@@ -150,7 +151,11 @@ export default function AdminDashboard() {
       key: 'amount', 
       header: batchColumns.find(c => c.key === 'amount')?.header || 'Amount',
       render: (item: typeof topUpSchedules[0]) => (
+<<<<<<< HEAD
         <span className="font-semibold text-success">${formatCurrency(Number(item.amount), 0)}</span>
+=======
+        <span className="font-semibold text-success">${formatCurrency(Number(item.amount))}</span>
+>>>>>>> 785df4ae9f8bc1b93cd135d2c9890aa90cda1592
       )
     },
     { 
@@ -191,7 +196,11 @@ export default function AdminDashboard() {
       key: 'amount', 
       header: individualColumns.find(c => c.key === 'amount')?.header || 'Amount',
       render: (item: typeof topUpSchedules[0]) => (
+<<<<<<< HEAD
         <span className="font-semibold text-success">${formatCurrency(Number(item.amount), 0)}</span>
+=======
+        <span className="font-semibold text-success">${formatCurrency(Number(item.amount))}</span>
+>>>>>>> 785df4ae9f8bc1b93cd135d2c9890aa90cda1592
       )
     },
     { 
@@ -354,9 +363,15 @@ export default function AdminDashboard() {
                   },
                   { 
                     key: 'created_by', 
+<<<<<<< HEAD
                     header: 'Created By',
                     render: (item: typeof accountHolders[0]) => (
                       <span className="text-sm text-muted-foreground">Admin 1</span>
+=======
+                    header: 'Created by',
+                    render: () => (
+                      <span className="text-sm text-muted-foreground">Admin</span>
+>>>>>>> 785df4ae9f8bc1b93cd135d2c9890aa90cda1592
                     )
                   },
                   { 

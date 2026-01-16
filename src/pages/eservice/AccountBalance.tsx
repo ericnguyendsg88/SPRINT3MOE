@@ -35,7 +35,7 @@ import { SectionAdder } from '@/components/editor/SectionAdder';
 import { CustomSectionRenderer } from '@/components/editor/CustomSectionRenderer';
 import { ColumnEditor } from '@/components/editor/ColumnEditor';
 import { ColumnDefinition, LayoutItem } from '@/hooks/usePageLayout';
-import { cn } from '@/lib/utils';
+import { cn, formatCurrency } from '@/lib/utils';
 
 const SECTION_IDS = ['balance-card', 'transactions'];
 

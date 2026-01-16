@@ -36,6 +36,7 @@ import { ResizableSection } from '@/components/editor/ResizableSection';
 import { SectionAdder } from '@/components/editor/SectionAdder';
 import { CustomSectionRenderer } from '@/components/editor/CustomSectionRenderer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { formatCurrency } from '@/lib/utils';
 
 const SECTION_IDS = ['header', 'summary-cards', 'enrolled-courses', 'pending-fees', 'payment-history'];
 
@@ -762,7 +763,7 @@ export default function CourseFees() {
                         key: 'fee', 
                         header: 'Fee',
                         render: (item: any) => (
-                          <span className="font-semibold text-foreground">${Number(item.course.fee).toLocaleString()}</span>
+                          <span className="font-semibold text-foreground">${formatCurrency(Number(item.course.fee))}</span>
                         )
                       },
                       { 

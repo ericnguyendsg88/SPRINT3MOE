@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Plus, Download, ArrowUpDown, ArrowUp, ArrowDown, X, Building, Monitor, CreditCard, RefreshCw, CheckCircle, Calendar, CalendarDays, DollarSign } from 'lucide-react';
+import { Search, Plus, Download, ArrowUpDown, ArrowUp, ArrowDown, ArrowLeft, ArrowUpRight, X, Building, Monitor, CreditCard, RefreshCw, CheckCircle, Calendar, CalendarDays, DollarSign, GraduationCap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import { formatCurrency } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   Table,
@@ -63,6 +64,7 @@ export default function CourseManagement() {
   const [sortField, setSortField] = useState<SortField>('created_at');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [isAddCourseOpen, setIsAddCourseOpen] = useState(false);
+  const [isReviewStep, setIsReviewStep] = useState(false);
 
   // Form state for adding course
   const [courseName, setCourseName] = useState('');
@@ -72,6 +74,8 @@ export default function CourseManagement() {
   const [paymentType, setPaymentType] = useState('');
   const [billingCycle, setBillingCycle] = useState('');
   const [feePerCycle, setFeePerCycle] = useState('');
+  const [totalFee, setTotalFee] = useState('');
+  const [feeEntryMode, setFeeEntryMode] = useState<'per_cycle' | 'total'>('per_cycle');
   const [modeOfTraining, setModeOfTraining] = useState('');
   const [courseStatus, setCourseStatus] = useState('active');
 
@@ -294,12 +298,107 @@ export default function CourseManagement() {
     setPaymentType('');
     setBillingCycle('');
     setFeePerCycle('');
+    setTotalFee('');
+    setFeeEntryMode('per_cycle');
     setModeOfTraining('');
     setCourseStatus('active');
+    setIsReviewStep(false);
+  };
+
+  // Calculate number of cycles based on date range and billing cycle
+  const calculateCycles = (start: string, end: string, cycle: string) => {
+    if (!start || !end) return 1;
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    const monthsDiff = (endDate.getFullYear() - startDate.getFullYear()) * 12 + 
+                      (endDate.getMonth() - startDate.getMonth()) + 1;
+    
+    switch (cycle) {
+      case 'monthly': return monthsDiff;
+      case 'quarterly': return Math.ceil(monthsDiff / 3);
+      case 'biannually': return Math.ceil(monthsDiff / 6);
+      case 'yearly': return Math.ceil(monthsDiff / 12);
+      default: return 1;
+    }
+  };
+
+  // Get course duration in months
+  const getCourseDurationMonths = () => {
+    if (!courseStart || !courseEnd) return 0;
+    const startDate = new Date(courseStart);
+    const endDate = new Date(courseEnd);
+    return (endDate.getFullYear() - startDate.getFullYear()) * 12 + 
+           (endDate.getMonth() - startDate.getMonth()) + 1;
+  };
+
+  // Check if billing cycle is valid for course duration
+  const isBillingCycleValid = (cycle: string) => {
+    const months = getCourseDurationMonths();
+    if (months === 0) return true;
+    switch (cycle) {
+      case 'monthly': return months >= 1;
+      case 'quarterly': return months >= 3;
+      case 'biannually': return months >= 6;
+      case 'yearly': return months >= 12;
+      default: return true;
+    }
+  };
+
+  // Calculate fee per cycle from total fee
+  const calculateFeePerCycle = () => {
+    if (feeEntryMode === 'per_cycle' || !totalFee || !billingCycle) return feePerCycle;
+    const cycles = calculateCycles(courseStart, courseEnd, billingCycle);
+    return (parseFloat(totalFee) / cycles).toFixed(2);
+  };
+
+  // Calculate total fee from fee per cycle
+  const calculateTotalFee = () => {
+    if (feeEntryMode === 'total' || !feePerCycle || !billingCycle) return totalFee;
+    const cycles = calculateCycles(courseStart, courseEnd, billingCycle);
+    return (parseFloat(feePerCycle) * cycles).toFixed(2);
+  };
+
+  // Validate form before proceeding to review
+  const validateFormForReview = () => {
+    const finalFee = feeEntryMode === 'per_cycle' ? feePerCycle : calculateFeePerCycle();
+    
+    if (!courseName.trim()) {
+      toast.error('Please enter a course name');
+      return false;
+    }
+    if (!provider) {
+      toast.error('Please select a provider');
+      return false;
+    }
+    if (!courseStart || !courseEnd) {
+      toast.error('Please select course start and end dates');
+      return false;
+    }
+    if (!paymentType) {
+      toast.error('Please select a payment type');
+      return false;
+    }
+    if (paymentType === 'recurring' && !billingCycle) {
+      toast.error('Please select a billing cycle');
+      return false;
+    }
+    if (!finalFee || parseFloat(finalFee) <= 0) {
+      toast.error('Please enter a valid fee amount');
+      return false;
+    }
+    return true;
+  };
+
+  const handleProceedToReview = () => {
+    if (validateFormForReview()) {
+      setIsReviewStep(true);
+    }
   };
 
   const handleCreateCourse = async () => {
-    if (!courseName.trim() || !provider || !courseStart || !courseEnd || !paymentType || !feePerCycle) {
+    const finalFee = feeEntryMode === 'per_cycle' ? feePerCycle : calculateFeePerCycle();
+    
+    if (!courseName.trim() || !provider || !courseStart || !courseEnd || !paymentType || !finalFee) {
       toast.error('Please fill in all required fields');
       return;
     }
@@ -310,13 +409,15 @@ export default function CourseManagement() {
     }
 
     try {
+      const finalFee = feeEntryMode === 'per_cycle' ? feePerCycle : calculateFeePerCycle();
+      
       await createCourseMutation.mutateAsync({
         name: courseName.trim(),
         provider,
         course_run_start: courseStart,
         course_run_end: courseEnd,
         billing_cycle: (paymentType === 'one_time' ? 'one_time' : billingCycle) as any,
-        fee: parseFloat(feePerCycle),
+        fee: parseFloat(finalFee),
         mode_of_training: (modeOfTraining || null) as any,
         status: courseStatus as any,
         description: null,
@@ -372,7 +473,10 @@ export default function CourseManagement() {
                       Add Course
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="sm:max-w-[550px]">
+                  <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
+                    {!isReviewStep ? (
+                      // Form Step
+                      <>
                     <DialogHeader>
                       <DialogTitle>Add New Course</DialogTitle>
                       <DialogDescription>
@@ -426,48 +530,6 @@ export default function CourseManagement() {
                       </div>
 
                       <div className="grid gap-2">
-                        <Label htmlFor="paymentType">Payment Type *</Label>
-                        <Select value={paymentType} onValueChange={setPaymentType}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select payment type" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="one_time">One Time</SelectItem>
-                            <SelectItem value="recurring">Recurring</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      {paymentType === 'recurring' && (
-                        <div className="grid gap-2">
-                          <Label htmlFor="billingCycle">Billing Cycle *</Label>
-                          <Select value={billingCycle} onValueChange={setBillingCycle}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select billing cycle" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="monthly">Monthly</SelectItem>
-                              <SelectItem value="quarterly">Quarterly</SelectItem>
-                              <SelectItem value="biannually">Bi-annually</SelectItem>
-                              <SelectItem value="yearly">Annually</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      )}
-
-                      <div className="grid gap-2">
-                        <Label htmlFor="feePerCycle">Fee per Cycle ($) *</Label>
-                        <Input 
-                          id="feePerCycle" 
-                          type="number"
-                          step="0.01"
-                          placeholder="0.00" 
-                          value={feePerCycle}
-                          onChange={(e) => setFeePerCycle(e.target.value)}
-                        />
-                      </div>
-
-                      <div className="grid gap-2">
                         <Label htmlFor="modeOfTraining">Mode of Training</Label>
                         <Select value={modeOfTraining} onValueChange={setModeOfTraining}>
                           <SelectTrigger>
@@ -493,6 +555,160 @@ export default function CourseManagement() {
                           </SelectContent>
                         </Select>
                       </div>
+
+                      {/* Fee Configuration Section */}
+                      <div className="pt-4 border-t space-y-4">
+                        <div className="space-y-1">
+                          <h4 className="text-sm font-semibold text-foreground">Fee Configuration</h4>
+                          <p className="text-xs text-muted-foreground">
+                            {!courseStart || !courseEnd 
+                              ? 'Please fill in course start and end dates first' 
+                              : 'Configure course fees and billing'}
+                          </p>
+                        </div>
+
+                      <div className="grid gap-2">
+                        <Label htmlFor="paymentType">Payment Type *</Label>
+                        <Select 
+                          value={paymentType} 
+                          onValueChange={setPaymentType}
+                          disabled={!courseStart || !courseEnd}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select payment type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="one_time">One Time</SelectItem>
+                            <SelectItem value="recurring">Recurring</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {paymentType === 'recurring' && (
+                        <>
+                          <div className="grid gap-2">
+                            <Label htmlFor="billingCycle">Billing Cycle *</Label>
+                            <Select value={billingCycle} onValueChange={setBillingCycle}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select billing cycle" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="monthly" disabled={!isBillingCycleValid('monthly')}>
+                                  Monthly {!isBillingCycleValid('monthly') && '(Course too short)'}
+                                </SelectItem>
+                                <SelectItem value="quarterly" disabled={!isBillingCycleValid('quarterly')}>
+                                  Quarterly {!isBillingCycleValid('quarterly') && '(Min 3 months required)'}
+                                </SelectItem>
+                                <SelectItem value="biannually" disabled={!isBillingCycleValid('biannually')}>
+                                  Bi-annually {!isBillingCycleValid('biannually') && '(Min 6 months required)'}
+                                </SelectItem>
+                                <SelectItem value="yearly" disabled={!isBillingCycleValid('yearly')}>
+                                  Annually {!isBillingCycleValid('yearly') && '(Min 12 months required)'}
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          {billingCycle && (
+                            <div className="space-y-4 p-4 bg-muted/30 rounded-lg border">
+                              {/* Modern Tab Buttons */}
+                              <div className="flex gap-2 p-1 bg-background rounded-lg border">
+                                <button
+                                  type="button"
+                                  className={`flex-1 px-4 py-2.5 rounded-md text-sm font-medium transition-all ${
+                                    feeEntryMode === 'per_cycle' 
+                                      ? 'bg-primary text-primary-foreground shadow-sm' 
+                                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                                  }`}
+                                  onClick={() => setFeeEntryMode('per_cycle')}
+                                >
+                                  <DollarSign className="inline h-4 w-4 mr-1.5" />
+                                  Fee per Cycle
+                                </button>
+                                <button
+                                  type="button"
+                                  className={`flex-1 px-4 py-2.5 rounded-md text-sm font-medium transition-all ${
+                                    feeEntryMode === 'total' 
+                                      ? 'bg-primary text-primary-foreground shadow-sm' 
+                                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                                  }`}
+                                  onClick={() => setFeeEntryMode('total')}
+                                >
+                                  <CreditCard className="inline h-4 w-4 mr-1.5" />
+                                  Total Fee
+                                </button>
+                              </div>
+
+                              {/* Fee Input Section */}
+                              {feeEntryMode === 'per_cycle' ? (
+                                <div className="space-y-2">
+                                  <Label htmlFor="feePerCycle" className="text-sm font-medium">Fee per Cycle ($) *</Label>
+                                  <Input 
+                                    id="feePerCycle" 
+                                    type="number"
+                                    step="0.01"
+                                    placeholder="0.00" 
+                                    value={feePerCycle}
+                                    onChange={(e) => setFeePerCycle(e.target.value)}
+                                    className="text-lg font-semibold"
+                                    disabled={!courseStart || !courseEnd}
+                                  />
+                                  {feePerCycle && courseStart && courseEnd && billingCycle && (
+                                    <div className="flex items-center gap-2 p-3 bg-primary/5 rounded-md border border-primary/10">
+                                      <CheckCircle className="h-4 w-4 text-primary" />
+                                      <p className="text-sm text-foreground">
+                                        <span className="font-medium">Total Course Fee:</span> ${calculateTotalFee()} 
+                                        <span className="text-muted-foreground ml-1">({calculateCycles(courseStart, courseEnd, billingCycle)} cycles)</span>
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <div className="space-y-2">
+                                  <Label htmlFor="totalFee" className="text-sm font-medium">Total Course Fee ($) *</Label>
+                                  <Input 
+                                    id="totalFee" 
+                                    type="number"
+                                    step="0.01"
+                                    placeholder="0.00" 
+                                    value={totalFee}
+                                    onChange={(e) => setTotalFee(e.target.value)}
+                                    className="text-lg font-semibold"
+                                    disabled={!courseStart || !courseEnd}
+                                  />
+                                  {totalFee && courseStart && courseEnd && billingCycle && (
+                                    <div className="flex items-center gap-2 p-3 bg-primary/5 rounded-md border border-primary/10">
+                                      <CheckCircle className="h-4 w-4 text-primary" />
+                                      <p className="text-sm text-foreground">
+                                        <span className="font-medium">Fee per Cycle:</span> ${calculateFeePerCycle()} 
+                                        <span className="text-muted-foreground ml-1">({calculateCycles(courseStart, courseEnd, billingCycle)} cycles)</span>
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </>
+                      )}
+
+                      {paymentType === 'one_time' && (
+                        <div className="space-y-2">
+                          <Label htmlFor="feePerCycle" className="text-sm font-medium">Course Fee ($) *</Label>
+                          <Input 
+                            id="feePerCycle" 
+                            type="number"
+                            step="0.01"
+                            placeholder="0.00" 
+                            value={feePerCycle}
+                            onChange={(e) => setFeePerCycle(e.target.value)}
+                            className="text-lg font-semibold"
+                            disabled={!courseStart || !courseEnd}
+                          />
+                        </div>
+                      )}
+                      </div>
+
                     </div>
                     <div className="flex justify-end gap-3">
                       <Button variant="outline" onClick={() => { resetForm(); setIsAddCourseOpen(false); }}>
@@ -500,13 +716,135 @@ export default function CourseManagement() {
                       </Button>
                       <Button 
                         variant="accent" 
+                        onClick={handleProceedToReview}
+                      >
+                        Review Course
+                        <ArrowUpRight className="h-4 w-4 ml-2" />
+                      </Button>
+                    </div>
+                    </>
+                    ) : (
+                      // Review Step
+                      <>
+                    <DialogHeader>
+                      <DialogTitle>Review Course Details</DialogTitle>
+                      <DialogDescription>
+                        Please review all the information before creating the course.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      {/* Course Information */}
+                      <div className="space-y-4">
+                        <div className="grid gap-3 p-4 bg-muted/30 rounded-lg">
+                          <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                            <GraduationCap className="h-4 w-4" />
+                            Course Information
+                          </h4>
+                          <div className="grid gap-2 text-sm">
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Course Name:</span>
+                              <span className="font-medium text-right">{courseName}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Provider:</span>
+                              <span className="font-medium text-right">{provider}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Mode of Training:</span>
+                              <span className="font-medium text-right">{modeOfTraining ? modeLabels[modeOfTraining] : 'Not specified'}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Status:</span>
+                              <span className="font-medium text-right">
+                                <StatusBadge status={courseStatus as 'active' | 'inactive'} />
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Course Schedule */}
+                        <div className="grid gap-3 p-4 bg-muted/30 rounded-lg">
+                          <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                            <Calendar className="h-4 w-4" />
+                            Course Schedule
+                          </h4>
+                          <div className="grid gap-2 text-sm">
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Start Date:</span>
+                              <span className="font-medium">{formatDate(courseStart)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">End Date:</span>
+                              <span className="font-medium">{formatDate(courseEnd)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Duration:</span>
+                              <span className="font-medium">{getCourseDurationMonths()} month{getCourseDurationMonths() !== 1 ? 's' : ''}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Fee Information */}
+                        <div className="grid gap-3 p-4 bg-primary/5 rounded-lg border border-primary/20">
+                          <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                            <DollarSign className="h-4 w-4" />
+                            Fee Information
+                          </h4>
+                          <div className="grid gap-2 text-sm">
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Payment Type:</span>
+                              <span className="font-medium">{paymentType === 'one_time' ? 'One Time' : 'Recurring'}</span>
+                            </div>
+                            {paymentType === 'recurring' && (
+                              <>
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Billing Cycle:</span>
+                                  <span className="font-medium">{billingCycleLabels[billingCycle]}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Number of Cycles:</span>
+                                  <span className="font-medium">{calculateCycles(courseStart, courseEnd, billingCycle)}</span>
+                                </div>
+                              </>
+                            )}
+                            <div className="flex justify-between items-center pt-2 border-t">
+                              <span className="text-muted-foreground">Fee per Cycle:</span>
+                              <span className="text-lg font-bold text-primary">
+                                ${feeEntryMode === 'per_cycle' ? parseFloat(feePerCycle).toFixed(2) : calculateFeePerCycle()}
+                              </span>
+                            </div>
+                            {paymentType === 'recurring' && (
+                              <div className="flex justify-between items-center">
+                                <span className="text-muted-foreground">Total Course Fee:</span>
+                                <span className="text-lg font-bold text-primary">
+                                  ${feeEntryMode === 'total' ? parseFloat(totalFee).toFixed(2) : calculateTotalFee()}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex justify-between gap-3">
+                      <Button variant="outline" onClick={() => setIsReviewStep(false)}>
+                        <ArrowLeft className="h-4 w-4 mr-2" />
+                        Back to Edit
+                      </Button>
+                      <Button 
+                        variant="accent" 
                         onClick={handleCreateCourse}
                         disabled={createCourseMutation.isPending}
                       >
-                        <Plus className="h-4 w-4 mr-2" />
-                        {createCourseMutation.isPending ? 'Creating...' : 'Create Course'}
+                        {createCourseMutation.isPending ? 'Creating...' : (
+                          <>
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            Confirm & Create
+                          </>
+                        )}
                       </Button>
                     </div>
+                    </>
+                    )}
                   </DialogContent>
                 </Dialog>
               </div>
@@ -970,7 +1308,11 @@ export default function CourseManagement() {
                           <TableCell className="text-foreground">{paymentType}</TableCell>
                           <TableCell className="text-muted-foreground">{billingCycleDisplay}</TableCell>
                           <TableCell className="font-semibold text-foreground">
+<<<<<<< HEAD
                             ${Number(course.fee).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+=======
+                            ${formatCurrency(Number(course.fee))}
+>>>>>>> 785df4ae9f8bc1b93cd135d2c9890aa90cda1592
                           </TableCell>
                           <TableCell className="text-muted-foreground">
                             {course.mode_of_training ? modeLabels[course.mode_of_training] || course.mode_of_training : '—'}

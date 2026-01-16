@@ -174,7 +174,7 @@ export default function StudentDetail() {
 
     // Get student's course charges
     const studentCharges = courseCharges.filter(c => c.account_id === accountId);
-    const outstandingCharges = studentCharges.filter(c => c.status === 'outstanding' || c.status === 'overdue');
+    const outstandingCharges = studentCharges.filter(c => c.status === 'outstanding');
     const clearCharges = studentCharges.filter(c => c.status === 'clear');
     const totalOutstanding = outstandingCharges.reduce((sum, c) => sum + Number(c.amount), 0);
 
@@ -391,7 +391,11 @@ export default function StudentDetail() {
       header: 'Total Fee',
       render: (item: typeof enrolledCourses[0]) => (
         <span className="font-semibold text-foreground">
+<<<<<<< HEAD
           ${item.totalFee.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+=======
+          ${formatCurrency(item.totalFee)}
+>>>>>>> 785df4ae9f8bc1b93cd135d2c9890aa90cda1592
         </span>
       )
     },
@@ -475,7 +479,11 @@ export default function StudentDetail() {
       key: 'amount',
       header: 'Amount',
       render: (item: typeof studentCharges[0]) => (
+<<<<<<< HEAD
         <span className="font-semibold text-foreground">${Number(item.amount).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
+=======
+        <span className="font-semibold text-foreground">${formatCurrency(Number(item.amount))}</span>
+>>>>>>> 785df4ae9f8bc1b93cd135d2c9890aa90cda1592
       )
     },
     {

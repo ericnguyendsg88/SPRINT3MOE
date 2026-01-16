@@ -55,7 +55,12 @@ export function CustomSectionRenderer({
   const formatValue = (field: CustomField) => {
     switch (field.type) {
       case 'currency':
-        return `$${parseFloat(field.value || '0').toFixed(2)}`;
+        const amount = parseFloat(field.value || '0');
+        // Smart decimals: remove .00 for whole numbers
+        if (Number.isInteger(amount)) {
+          return `$${amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+        }
+        return `$${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
       case 'date':
         return field.value ? new Date(field.value).toLocaleDateString() : '—';
       default:

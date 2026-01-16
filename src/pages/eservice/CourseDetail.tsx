@@ -16,7 +16,7 @@ import { formatCurrency } from '@/lib/utils';
 import { usePageLayout } from '@/hooks/usePageLayout';
 import { FieldEditor, FieldDefinition } from '@/components/editor/FieldEditor';
 import { EditModeToggle } from '@/components/editor/EditModeToggle';
-
+import { formatCurrency } from '@/lib/utils';
 type BillingCycle = 'monthly' | 'quarterly' | 'biannually' | 'yearly' | 'one_time';
 
 const billingCycleLabels: Record<BillingCycle, string> = {

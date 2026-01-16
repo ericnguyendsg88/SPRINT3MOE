@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import { formatCurrency } from '@/lib/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Table,
@@ -545,7 +546,7 @@ export default function AccountManagement() {
                           placeholder="Auto-filled from NRIC verification" 
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
-                          disabled={true}
+                          disabled={!nricDataRetrieved}
                         />
                       </div>
                     </div>
@@ -557,13 +558,13 @@ export default function AccountManagement() {
                         placeholder="Auto-filled from NRIC verification" 
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
-                        disabled={true}
+                        disabled={!nricDataRetrieved}
                       />
                     </div>
 
                     <div className="grid gap-2">
                       <Label htmlFor="educationLevel">Education Level</Label>
-                      <Select value={educationLevel} onValueChange={setEducationLevel}>
+                      <Select value={educationLevel} onValueChange={setEducationLevel} disabled={!nricDataRetrieved}>
                         <SelectTrigger>
                           <SelectValue placeholder="Select level" />
                         </SelectTrigger>
@@ -584,7 +585,7 @@ export default function AccountManagement() {
                         placeholder="Auto-filled from NRIC verification" 
                         value={residentialAddress}
                         onChange={(e) => setResidentialAddress(e.target.value)}
-                        disabled={true}
+                        disabled={!nricDataRetrieved}
                       />
                     </div>
 
@@ -605,7 +606,7 @@ export default function AccountManagement() {
                         placeholder="Auto-filled from NRIC verification" 
                         value={mailingAddress}
                         onChange={(e) => setMailingAddress(e.target.value)}
-                        disabled={true}
+                        disabled={!nricDataRetrieved}
                       />
                     </div>
                   </div>
@@ -875,12 +876,6 @@ export default function AccountManagement() {
                 </div>
               </CardContent>
             </Card>
-            <div className="flex justify-end mt-4">
-              <Button variant="outline">
-                <Download className="h-4 w-4 mr-2" />
-                Export
-              </Button>
-            </div>
           </ResizableSection>
         );
 
@@ -972,7 +967,11 @@ export default function AccountManagement() {
                           </TableCell>
                           <TableCell className="text-muted-foreground">{account.nric}</TableCell>
                           <TableCell className="text-foreground">{age}</TableCell>
+<<<<<<< HEAD
                           <TableCell className="font-semibold text-foreground">${Number(account.balance).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</TableCell>
+=======
+                          <TableCell className="font-semibold text-foreground">${formatCurrency(Number(account.balance))}</TableCell>
+>>>>>>> 785df4ae9f8bc1b93cd135d2c9890aa90cda1592
                           <TableCell className="text-muted-foreground">
                             {account.education_level ? educationLevelLabels[account.education_level] || account.education_level : '-'}
                           </TableCell>

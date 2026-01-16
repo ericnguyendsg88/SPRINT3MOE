@@ -6,7 +6,7 @@ type Status =
   | 'in_school' | 'not_in_school'
   | 'primary' | 'secondary' | 'post_secondary' | 'tertiary' | 'postgraduate'
   | 'scheduled' | 'processing'
-  | 'outstanding' | 'clear' | 'fully_paid' | 'partially_paid'
+  | 'outstanding' | 'fully_paid' | 'clear' | 'overdue' | 'partially_paid'
   | 'payment_scheduled';
 
 export type { Status };
@@ -39,8 +39,9 @@ const statusStyles: Record<Status, string> = {
   scheduled: 'bg-muted text-muted-foreground border-muted',
   processing: 'bg-warning/10 text-warning border-warning/20',
   outstanding: 'bg-warning/10 text-warning border-warning/20',
-  clear: 'bg-success/10 text-success border-success/20',
   fully_paid: 'bg-success/10 text-success border-success/20',
+  clear: 'bg-success/10 text-success border-success/20',
+  overdue: 'bg-destructive/10 text-destructive border-destructive/20',
   partially_paid: 'bg-warning/10 text-warning border-warning/20',
   payment_scheduled: 'bg-success/10 text-success border-success/20',
 };
@@ -68,9 +69,10 @@ const statusLabels: Record<Status, string> = {
   scheduled: 'Scheduled',
   processing: 'Processing',
   outstanding: 'Outstanding',
-  clear: 'Fully Paid',
   fully_paid: 'Fully Paid',
-  partially_paid: 'Partially Paid',
+  clear: 'Paid',
+  overdue: 'Overdue',
+  partially_paid: 'Partial',
   payment_scheduled: 'Scheduled',
 };
 

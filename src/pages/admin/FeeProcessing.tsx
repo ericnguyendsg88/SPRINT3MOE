@@ -15,6 +15,7 @@ import { SectionAdder } from '@/components/editor/SectionAdder';
 import { CustomSectionRenderer } from '@/components/editor/CustomSectionRenderer';
 import { ColumnEditor } from '@/components/editor/ColumnEditor';
 import { ColumnDefinition, LayoutItem } from '@/hooks/usePageLayout';
+import { formatCurrency } from '@/lib/utils';
 
 const SECTION_IDS = ['stats', 'info', 'charges-table'];
 
@@ -39,7 +40,7 @@ export default function FeeProcessing() {
   } = usePageBuilder('fee-processing', SECTION_IDS);
 
   const outstandingCharges = courseCharges.filter(c => c.status === 'outstanding');
-  const overdueCharges = courseCharges.filter(c => c.status === 'overdue');
+  const overdueCharges = courseCharges.filter(c => c.status === 'outstanding');
   const clearCharges = courseCharges.filter(c => c.status === 'clear');
   
   const totalOutstanding = outstandingCharges.reduce((sum, c) => sum + Number(c.amount), 0);
@@ -110,7 +111,7 @@ export default function FeeProcessing() {
       key: 'status', 
       header: chargeColumnsConfig.find(c => c.key === 'status')?.header || 'Payment Status',
       render: (item: typeof courseCharges[0]) => (
-        <StatusBadge status={item.status === 'overdue' ? 'outstanding' : item.status} />
+        <StatusBadge status={item.status} />
       )
     },
     { 
@@ -162,28 +163,45 @@ export default function FeeProcessing() {
           <div className="grid gap-4 md:grid-cols-4">
             <StatCard
               title="Outstanding Fees"
+<<<<<<< HEAD
               value={`$${formatCurrency(totalOutstanding, 0)}`}
+=======
+              value={`$${formatCurrency(totalOutstanding)}`}
+>>>>>>> 785df4ae9f8bc1b93cd135d2c9890aa90cda1592
               subtitle={`${outstandingCharges.length} charges`}
               icon={Clock}
               variant="warning"
             />
             <StatCard
+<<<<<<< HEAD
               title="Overdue Fees"
               value={`$${formatCurrency(totalOverdue, 0)}`}
+=======
+              title="Unpaid Fees"
+              value={`$${formatCurrency(totalOverdue)}`}
+>>>>>>> 785df4ae9f8bc1b93cd135d2c9890aa90cda1592
               subtitle={`${overdueCharges.length} charges`}
               icon={AlertTriangle}
               variant="default"
             />
             <StatCard
               title="Collected This Month"
+<<<<<<< HEAD
               value={`$${formatCurrency(clearCharges.reduce((sum, c) => sum + Number(c.amount), 0), 0)}`}
+=======
+              value={`$${formatCurrency(clearCharges.reduce((sum, c) => sum + Number(c.amount), 0))}`}
+>>>>>>> 785df4ae9f8bc1b93cd135d2c9890aa90cda1592
               subtitle={`${clearCharges.length} payments`}
               icon={CheckCircle}
               variant="success"
             />
             <StatCard
               title="Total Due"
+<<<<<<< HEAD
               value={`$${formatCurrency(totalOutstanding + totalOverdue, 0)}`}
+=======
+              value={`$${formatCurrency(totalOutstanding + totalOverdue)}`}
+>>>>>>> 785df4ae9f8bc1b93cd135d2c9890aa90cda1592
               subtitle="To be collected"
               icon={CreditCard}
               variant="primary"

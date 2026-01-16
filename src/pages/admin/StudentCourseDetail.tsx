@@ -11,6 +11,7 @@ import { useEnrollments } from '@/hooks/useEnrollments';
 import { useAccountHolder } from '@/hooks/useAccountHolders';
 import { formatPaymentMethod } from '@/lib/paymentStatusUtils';
 import { formatDate, getBillingCycleLabel, getUpcomingBillingCycles } from '@/lib/dateUtils';
+import { formatCurrency } from '@/lib/utils';
 
 type BillingCycle = 'monthly' | 'quarterly' | 'biannually' | 'yearly';
 
@@ -109,7 +110,7 @@ export default function StudentCourseDetail() {
       header: 'Amount',
       render: (item: typeof courseCharges[0]) => (
         <span className="font-semibold text-foreground">
-          ${Number(item.amount).toFixed(2)}
+          ${formatCurrency(Number(item.amount))}
         </span>
       )
     },
@@ -118,7 +119,7 @@ export default function StudentCourseDetail() {
       header: 'Paid',
       render: (item: typeof courseCharges[0]) => (
         <span className="font-semibold text-success">
-          ${Number(item.amount_paid || 0).toFixed(2)}
+          ${formatCurrency(Number(item.amount_paid || 0))}
         </span>
       )
     },
@@ -126,7 +127,7 @@ export default function StudentCourseDetail() {
       key: 'status',
       header: 'Status',
       render: (item: typeof courseCharges[0]) => (
-        <StatusBadge status={item.status === 'overdue' ? 'outstanding' : item.status} />
+        <StatusBadge status={item.status} />
       )
     },
   ];
@@ -169,7 +170,7 @@ export default function StudentCourseDetail() {
       header: 'Amount',
       render: (item: typeof courseCharges[0]) => (
         <span className="font-semibold text-success">
-          ${Number(item.amount).toFixed(2)}
+          ${formatCurrency(Number(item.amount))}
         </span>
       )
     },
@@ -224,7 +225,7 @@ export default function StudentCourseDetail() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Total Charged</p>
-                <p className="text-2xl font-bold">${totalCharged.toFixed(2)}</p>
+                <p className="text-2xl font-bold">${formatCurrency(totalCharged)}</p>
               </div>
             </div>
           </CardContent>
@@ -237,7 +238,7 @@ export default function StudentCourseDetail() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Total Paid</p>
-                <p className="text-2xl font-bold text-success">${totalPaid.toFixed(2)}</p>
+                <p className="text-2xl font-bold text-success">${formatCurrency(totalPaid)}</p>
               </div>
             </div>
           </CardContent>
@@ -250,7 +251,7 @@ export default function StudentCourseDetail() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Outstanding</p>
-                <p className="text-2xl font-bold text-warning">${outstanding.toFixed(2)}</p>
+                <p className="text-2xl font-bold text-warning">${formatCurrency(outstanding)}</p>
               </div>
             </div>
           </CardContent>
@@ -321,7 +322,7 @@ export default function StudentCourseDetail() {
               <div>
                 <p className="text-sm text-muted-foreground">Fee per Cycle</p>
                 <p className="font-medium">
-                  ${Number(course.fee).toFixed(2)} / {billingCycleLabels[course.billing_cycle as BillingCycle]}
+                  ${formatCurrency(Number(course.fee))} / {billingCycleLabels[course.billing_cycle as BillingCycle]}
                 </p>
               </div>
             </div>
@@ -379,7 +380,7 @@ export default function StudentCourseDetail() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold text-foreground">${Number(course.fee).toFixed(2)}</p>
+                    <p className="font-semibold text-foreground">${formatCurrency(Number(course.fee))}</p>
                     <StatusBadge status="scheduled" />
                   </div>
                 </div>

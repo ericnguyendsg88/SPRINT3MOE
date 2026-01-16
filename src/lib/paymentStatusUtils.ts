@@ -98,10 +98,9 @@ export function calculatePaymentStatus(
     };
   }
 
-  // Check for overdue charges (unpaid for more than 30 days since due date)
-  const hasOverdue = charges.some(c => {
-    if (c.status === 'overdue') return true;
-    if (c.status === 'outstanding' || c.status === 'partially_paid') {
+  // Check for outstanding charges (unpaid)
+  const hasUnpaid = charges.some(c => {
+    if (c.status === 'outstanding') {
       const dueDate = new Date(c.due_date);
       const daysSinceDue = daysBetween(dueDate, today);
       return daysSinceDue > 30;
@@ -109,16 +108,16 @@ export function calculatePaymentStatus(
     return false;
   });
 
-  if (hasOverdue) {
+  if (hasUnpaid) {
     return {
-      status: 'overdue',
+      status: 'outstanding',
       nextBillingDate: getNextBillingDate(today),
     };
   }
 
   // Check for outstanding charges (within 30 days payment window)
   const hasOutstanding = charges.some(c => {
-    if (c.status === 'outstanding' || c.status === 'partially_paid') {
+    if (c.status === 'outstanding') {
       const dueDate = new Date(c.due_date);
       const daysSinceDue = daysBetween(dueDate, today);
       return daysSinceDue >= 0 && daysSinceDue <= 30;
@@ -133,10 +132,10 @@ export function calculatePaymentStatus(
     };
   }
 
-  // Check if all charges are clear
-  const allClear = charges.every(c => c.status === 'clear');
+  // Check if all charges are fully paid (using 'clear' status from database)
+  const allPaid = charges.every(c => c.status === 'clear');
   
-  if (allClear) {
+  if (allPaid) {
     // Check if there's a next billing date coming (course is ongoing)
     // For now, assume if all charges are clear, the student is either fully paid
     // or scheduled for next billing

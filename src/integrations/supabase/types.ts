@@ -480,7 +480,6 @@ export type Database = {
         | "processing"
         | "completed"
         | "failed"
-        | "cancelled"
       top_up_schedule_type: "batch" | "individual"
       transaction_status: "completed" | "pending" | "failed"
       transaction_type: "top_up" | "course_fee" | "payment" | "refund"
