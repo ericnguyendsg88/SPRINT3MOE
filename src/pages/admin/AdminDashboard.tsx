@@ -9,8 +9,16 @@ import { useCourseCharges } from '@/hooks/useCourseCharges';
 import { useEnrollments } from '@/hooks/useEnrollments';
 import { useAccountHolders } from '@/hooks/useAccountHolders';
 import { Link, useNavigate } from 'react-router-dom';
+import { formatCurrency } from '@/lib/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { usePageBuilder } from '@/components/editor/PageBuilder';
 import { EditModeToggle } from '@/components/editor/EditModeToggle';
 import { SortableContainer } from '@/components/editor/SortableContainer';
@@ -25,6 +33,9 @@ const SECTION_IDS = ['topup-tracking', 'recent-activity'];
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
+  const [selectedBatchDetail, setSelectedBatchDetail] = useState<typeof topUpSchedules[0] | null>(null);
+  const [showBatchDetailModal, setShowBatchDetailModal] = useState(false);
+  
   const { data: topUpSchedules = [], isLoading: loadingSchedules } = useTopUpSchedules();
   const { data: courseCharges = [], isLoading: loadingCharges } = useCourseCharges();
   const { data: enrollments = [], isLoading: loadingEnrollments } = useEnrollments();
@@ -70,14 +81,23 @@ export default function AdminDashboard() {
     .filter(t => t.status === 'completed')
     .reduce((sum, t) => sum + Number(t.amount) * (t.processed_count || 1), 0);
 
-  // Filter only scheduled top-ups for dashboard display
+  // Filter only scheduled top-ups for dashboard display (within 30 days)
+  const thirtyDaysFromNow = new Date();
+  thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+  
   const scheduledBatchTopUps = [...topUpSchedules]
-    .filter(s => s.type === 'batch' && s.status === 'scheduled')
+    .filter(s => {
+      const scheduledDate = new Date(s.scheduled_date);
+      return s.type === 'batch' && s.status === 'scheduled' && scheduledDate <= thirtyDaysFromNow;
+    })
     .sort((a, b) => new Date(a.scheduled_date).getTime() - new Date(b.scheduled_date).getTime())
     .slice(0, 8);
 
   const scheduledIndividualTopUps = [...topUpSchedules]
-    .filter(s => s.type === 'individual' && s.status === 'scheduled')
+    .filter(s => {
+      const scheduledDate = new Date(s.scheduled_date);
+      return s.type === 'individual' && s.status === 'scheduled' && scheduledDate <= thirtyDaysFromNow;
+    })
     .sort((a, b) => new Date(a.scheduled_date).getTime() - new Date(b.scheduled_date).getTime())
     .slice(0, 8);
 
@@ -86,8 +106,12 @@ export default function AdminDashboard() {
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 5);
 
-  // Recent account creations sorted by created_at
+  // Recent account creations sorted by created_at (within 7 days)
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  
   const recentAccounts = [...accountHolders]
+    .filter(account => new Date(account.created_at) >= sevenDaysAgo)
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 5);
 
@@ -126,7 +150,7 @@ export default function AdminDashboard() {
       key: 'amount', 
       header: batchColumns.find(c => c.key === 'amount')?.header || 'Amount',
       render: (item: typeof topUpSchedules[0]) => (
-        <span className="font-semibold text-success">${Number(item.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+        <span className="font-semibold text-success">${formatCurrency(Number(item.amount), 0)}</span>
       )
     },
     { 
@@ -167,7 +191,7 @@ export default function AdminDashboard() {
       key: 'amount', 
       header: individualColumns.find(c => c.key === 'amount')?.header || 'Amount',
       render: (item: typeof topUpSchedules[0]) => (
-        <span className="font-semibold text-success">${Number(item.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+        <span className="font-semibold text-success">${formatCurrency(Number(item.amount), 0)}</span>
       )
     },
     { 
@@ -230,7 +254,7 @@ export default function AdminDashboard() {
                   <Calendar className="h-5 w-5 text-accent" />
                   <div>
                     <CardTitle>Scheduled Top-ups</CardTitle>
-                    <CardDescription>Upcoming scheduled top-ups</CardDescription>
+                    <CardDescription>Scheduled top-ups within the next 30 days</CardDescription>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -271,6 +295,10 @@ export default function AdminDashboard() {
                     data={scheduledBatchTopUps} 
                     columns={batchScheduleColumns}
                     emptyMessage="No scheduled batch top-ups"
+                    onRowClick={(schedule) => {
+                      setSelectedBatchDetail(schedule);
+                      setShowBatchDetailModal(true);
+                    }}
                   />
                 </TabsContent>
                 <TabsContent value="individual">
@@ -301,8 +329,8 @@ export default function AdminDashboard() {
               <div className="flex items-center gap-3">
                 <Activity className="h-5 w-5 text-accent" />
                 <div>
-                  <CardTitle>Recent Activity</CardTitle>
-                  <CardDescription>Latest account creations</CardDescription>
+                  <CardTitle>Latest Account Creation</CardTitle>
+                  <CardDescription>Accounts created within the last 7 days</CardDescription>
                 </div>
               </div>
             </CardHeader>
@@ -322,6 +350,13 @@ export default function AdminDashboard() {
                     header: 'Email',
                     render: (item: typeof accountHolders[0]) => (
                       <span className="text-muted-foreground">{item.email}</span>
+                    )
+                  },
+                  { 
+                    key: 'created_by', 
+                    header: 'Created By',
+                    render: (item: typeof accountHolders[0]) => (
+                      <span className="text-sm text-muted-foreground">Admin 1</span>
                     )
                   },
                   { 
@@ -384,6 +419,171 @@ export default function AdminDashboard() {
           onAddSection={handleAddSection} 
         />
       )}
+
+      {/* Batch Top-up Detail Modal */}
+      <Dialog open={showBatchDetailModal} onOpenChange={setShowBatchDetailModal}>
+        <DialogContent className="sm:max-w-[700px] max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Batch Top-up Details</DialogTitle>
+            <DialogDescription>
+              Detailed information about the scheduled batch top-up
+            </DialogDescription>
+          </DialogHeader>
+          {selectedBatchDetail && (
+            <div className="space-y-6 py-4">
+              {/* Basic Information */}
+              <div className="grid gap-4">
+                <div className="grid grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Rule Name</p>
+                    <p className="font-medium text-foreground">{selectedBatchDetail.rule_name || 'Manual Batch Top-up'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Status</p>
+                    <StatusBadge status={selectedBatchDetail.status === 'failed' ? 'cancelled' : selectedBatchDetail.status} />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Amount per Account</p>
+                    <p className="font-semibold text-success text-lg">
+                      S${formatCurrency(Number(selectedBatchDetail.amount), 0)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Targeted Accounts</p>
+                    <p className="font-medium text-foreground">{selectedBatchDetail.eligible_count || 0} accounts</p>
+                  </div>
+                </div>
+
+                {/* Schedule Information */}
+                <div className="p-4 bg-muted/50 rounded-lg">
+                  <p className="text-sm font-medium text-foreground mb-3">Schedule Information</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Scheduled Date</p>
+                      <p className="font-medium text-foreground">
+                        {new Date(selectedBatchDetail.scheduled_date).toLocaleDateString('en-GB', { 
+                          day: '2-digit', 
+                          month: 'short', 
+                          year: 'numeric' 
+                        })}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Scheduled Time</p>
+                      <p className="font-medium text-foreground">{selectedBatchDetail.scheduled_time || '09:00'}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Total Disbursement */}
+                <div className="p-4 bg-primary/5 rounded-lg border border-primary/20">
+                  <p className="text-xs text-muted-foreground mb-1">Total Disbursement</p>
+                  <p className="text-2xl font-bold text-primary">
+                    S${formatCurrency(Number(selectedBatchDetail.amount) * (selectedBatchDetail.eligible_count || 0), 0)}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {selectedBatchDetail.eligible_count || 0} accounts × S${formatCurrency(Number(selectedBatchDetail.amount), 0)}
+                  </p>
+                </div>
+
+                {/* Description/Remarks */}
+                {selectedBatchDetail.remarks && (() => {
+                  try {
+                    const remarks = JSON.parse(selectedBatchDetail.remarks);
+                    return (
+                      <div className="p-4 bg-muted/50 rounded-lg space-y-3">
+                        {remarks.description && (
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-1">Description</p>
+                            <p className="font-medium text-foreground">{remarks.description}</p>
+                          </div>
+                        )}
+                        {remarks.targetingType && (
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-1">Targeting Type</p>
+                            <p className="font-medium text-foreground capitalize">{remarks.targetingType}</p>
+                          </div>
+                        )}
+                        {remarks.summary && (
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-1">Summary</p>
+                            <p className="text-sm text-muted-foreground">{remarks.summary}</p>
+                          </div>
+                        )}
+                        {remarks.criteria && remarks.targetingType === 'customized' && (
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-2">Targeting Criteria</p>
+                            <div className="space-y-2 text-sm">
+                              {remarks.criteria.minAge && remarks.criteria.maxAge && (
+                                <p className="text-muted-foreground">• Age: {remarks.criteria.minAge} - {remarks.criteria.maxAge} years</p>
+                              )}
+                              {remarks.criteria.minBalance !== null && remarks.criteria.maxBalance !== null && (
+                                <p className="text-muted-foreground">
+                                  • Balance: S${remarks.criteria.minBalance} - S${remarks.criteria.maxBalance}
+                                </p>
+                              )}
+                              {remarks.criteria.educationStatus && remarks.criteria.educationStatus.length > 0 && (
+                                <p className="text-muted-foreground">
+                                  • Education: {remarks.criteria.educationStatus.join(', ')}
+                                </p>
+                              )}
+                              {remarks.criteria.residentialStatus && remarks.criteria.residentialStatus.length > 0 && (
+                                <p className="text-muted-foreground">
+                                  • Residential: {remarks.criteria.residentialStatus.join(', ')}
+                                </p>
+                              )}
+                              {remarks.criteria.schoolingStatus && remarks.criteria.schoolingStatus !== 'all' && (
+                                <p className="text-muted-foreground">
+                                  • Schooling: {remarks.criteria.schoolingStatus === 'in_school' ? 'In School' : 'Not In School'}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  } catch (e) {
+                    return (
+                      <div className="p-4 bg-muted/50 rounded-lg">
+                        <p className="text-xs text-muted-foreground mb-1">Remarks</p>
+                        <p className="text-sm text-muted-foreground">{selectedBatchDetail.remarks}</p>
+                      </div>
+                    );
+                  }
+                })()}
+
+                {/* Execution Information (if completed) */}
+                {selectedBatchDetail.executed_date && (
+                  <div className="p-4 bg-muted/50 rounded-lg">
+                    <p className="text-xs text-muted-foreground mb-1">Executed On</p>
+                    <p className="font-medium text-foreground">
+                      {new Date(selectedBatchDetail.executed_date).toLocaleDateString('en-GB', { 
+                        day: '2-digit', 
+                        month: 'short', 
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <Button variant="outline" onClick={() => setShowBatchDetailModal(false)}>
+                  Close
+                </Button>
+                <Button onClick={() => {
+                  setShowBatchDetailModal(false);
+                  navigate('/admin/topup');
+                }}>
+                  Go to Top-Up Management
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

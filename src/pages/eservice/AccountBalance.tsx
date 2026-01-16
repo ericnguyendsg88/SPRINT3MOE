@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Search, Filter, ArrowUpRight, CreditCard, Calendar, DollarSign, X, ChevronDown, Check } from 'lucide-react';
 import { DataTable } from '@/components/shared/DataTable';
 import { Button } from '@/components/ui/button';
@@ -19,6 +20,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { usePageBuilder } from '@/components/editor/PageBuilder';
 import { EditModeToggle } from '@/components/editor/EditModeToggle';
 import { SortableContainer } from '@/components/editor/SortableContainer';
@@ -29,10 +37,11 @@ import { ColumnEditor } from '@/components/editor/ColumnEditor';
 import { ColumnDefinition, LayoutItem } from '@/hooks/usePageLayout';
 import { cn } from '@/lib/utils';
 
-const SECTION_IDS = ['balance-card', 'stats', 'transactions'];
+const SECTION_IDS = ['balance-card', 'transactions'];
 
 export default function AccountBalance() {
   const { currentUserId } = useCurrentUser();
+  const navigate = useNavigate();
   
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
@@ -42,6 +51,8 @@ export default function AccountBalance() {
   const [customMaxAmount, setCustomMaxAmount] = useState<string>('');
   const [customStartDate, setCustomStartDate] = useState<string>('');
   const [customEndDate, setCustomEndDate] = useState<string>('');
+  const [selectedTransaction, setSelectedTransaction] = useState<(Transaction & { balanceAfter: number }) | null>(null);
+  const [showTransactionModal, setShowTransactionModal] = useState(false);
 
   const { data: accountHolders = [], isLoading: loadingAccounts } = useAccountHolders();
   
@@ -73,16 +84,6 @@ export default function AccountBalance() {
       </div>
     );
   }
-
-  // Calculate total top-ups received
-  const totalTopUps = transactions
-    .filter(t => t.type === 'top_up' && t.status === 'completed')
-    .reduce((sum, t) => sum + Number(t.amount), 0);
-
-  // Calculate total fees paid
-  const totalFeesPaid = transactions
-    .filter(t => t.type === 'course_fee' && t.status === 'completed')
-    .reduce((sum, t) => sum + Math.abs(Number(t.amount)), 0);
 
   const filteredTransactions = transactions.filter(transaction => {
     const matchesSearch = 
@@ -189,11 +190,17 @@ export default function AccountBalance() {
     { 
       key: 'created_at', 
       header: transactionColumnsConfig.find(c => c.key === 'created_at')?.header || 'Date',
-      render: (item: Transaction & { balanceAfter: number }) => (
-        <span className="text-foreground">
-          {formatDate(item.created_at)}
-        </span>
-      )
+      render: (item: Transaction & { balanceAfter: number }) => {
+        const date = new Date(item.created_at);
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = String(date.getFullYear()).slice(-2);
+        return (
+          <span className="text-foreground">
+            {`${day}/${month}/${year}`}
+          </span>
+        );
+      }
     },
     { 
       key: 'type', 
@@ -213,19 +220,50 @@ export default function AccountBalance() {
     { 
       key: 'description', 
       header: transactionColumnsConfig.find(c => c.key === 'description')?.header || 'Description',
-      render: (item: Transaction & { balanceAfter: number }) => (
-        <div>
-          <p className="font-medium text-foreground">{item.description || '—'}</p>
-          {item.reference && <p className="text-xs text-muted-foreground">{item.reference}</p>}
-        </div>
-      )
+      render: (item: Transaction & { balanceAfter: number }) => {
+        // Parse description to format appropriately
+        let displayText = item.description || '—';
+        let topUpName = '';
+        
+        if (item.type === 'course_fee') {
+          // For course payments: "Course Payment [Course Name] - [Billing Cycle]"
+          // Try to extract course name from description
+          const match = item.description?.match(/Course fee payment: (.+)/) || 
+                       item.description?.match(/(.+)/);
+          if (match) {
+            displayText = `Course Payment ${match[1]}`;
+          } else {
+            displayText = 'Course Payment';
+          }
+        } else if (item.type === 'top_up') {
+          // For top-ups: extract the name after the prefix
+          if (item.description?.toLowerCase().includes('batch top-up')) {
+            // Extract name after "Batch Top-up - "
+            topUpName = item.description.replace(/^Batch Top-up - /i, '').trim();
+            displayText = topUpName || 'Batch Top-Up';
+          } else if (item.description?.toLowerCase().includes('individual top-up')) {
+            // Extract name after "Individual Top-up - "
+            topUpName = item.description.replace(/^Individual Top-up - /i, '').trim();
+            displayText = topUpName || 'Individual Top-Up';
+          } else {
+            displayText = item.description || 'Top-Up';
+          }
+        }
+        
+        return (
+          <div className="min-w-[200px]">
+            <p className="font-medium text-foreground">{displayText}</p>
+            {item.reference && <p className="text-xs text-muted-foreground mt-0.5">{item.reference}</p>}
+          </div>
+        );
+      }
     },
     { 
       key: 'amount', 
       header: transactionColumnsConfig.find(c => c.key === 'amount')?.header || 'Amount',
       render: (item: Transaction & { balanceAfter: number }) => (
         <span className={`font-semibold ${Number(item.amount) >= 0 ? 'text-success' : 'text-destructive'}`}>
-          {Number(item.amount) >= 0 ? '+' : '-'}${Math.abs(Number(item.amount)).toFixed(2)}
+          {Number(item.amount) >= 0 ? '+' : '-'}${Math.abs(Number(item.amount)).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
         </span>
       )
     },
@@ -233,7 +271,7 @@ export default function AccountBalance() {
       key: 'balanceAfter', 
       header: transactionColumnsConfig.find(c => c.key === 'balanceAfter')?.header || 'Balance',
       render: (item: Transaction & { balanceAfter: number }) => (
-        <span className="font-medium text-foreground">${item.balanceAfter.toFixed(2)}</span>
+        <span className="font-medium text-foreground">${item.balanceAfter.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
       )
     },
   ].filter(col => transactionColumnsConfig.find(c => c.key === col.key)?.visible !== false);
@@ -262,47 +300,20 @@ export default function AccountBalance() {
           isEditMode={isEditMode}
         >
           <div className="rounded-2xl gradient-hero p-8 text-primary-foreground">
-            <p className="text-sm opacity-90">Current Balance</p>
-            <p className="text-5xl font-bold mt-2">${Number(currentUser.balance).toFixed(2)}</p>
-            <p className="text-sm opacity-75 mt-2">Available for course fees and payments</p>
-          </div>
-        </ResizableSection>
-      );
-    }
-
-    if (item.id === 'stats') {
-      return (
-        <ResizableSection
-          key={item.id}
-          id={item.id}
-          size={getSectionSize(item.id)}
-          onSizeChange={(size) => updateSectionSize(item.id, size)}
-          isEditMode={isEditMode}
-        >
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="rounded-xl border border-border bg-card p-6 shadow-card">
-              <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-success/10">
-                  <ArrowUpRight className="h-6 w-6 text-success" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Top-ups Received</p>
-                  <p className="text-2xl font-bold text-foreground">${totalTopUps.toFixed(2)}</p>
-                  <p className="text-xs text-muted-foreground">Credits from government schemes</p>
-                </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm opacity-90">Current Balance</p>
+                <p className="text-5xl font-bold mt-2">${Number(currentUser.balance).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</p>
+                <p className="text-sm opacity-75 mt-2">Available for Education Courses Payment</p>
               </div>
-            </div>
-            <div className="rounded-xl border border-border bg-card p-6 shadow-card">
-              <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-                  <CreditCard className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Fees Paid</p>
-                  <p className="text-2xl font-bold text-foreground">${totalFeesPaid.toFixed(2)}</p>
-                  <p className="text-xs text-muted-foreground">Course fees deducted</p>
-                </div>
-              </div>
+              <Button 
+                onClick={() => navigate('/eservice/fees')}
+                variant="secondary"
+                size="lg"
+                className="bg-white text-primary hover:bg-white/90"
+              >
+                Pay Courses
+              </Button>
             </div>
           </div>
         </ResizableSection>
@@ -380,15 +391,15 @@ export default function AccountBalance() {
                     <Button variant="outline" className="w-full sm:w-[200px] justify-start">
                       <Calendar className="h-4 w-4 mr-2" />
                       <span className="flex-1 text-left">
-                        {dateFilter === 'all' && 'All Time'}
-                        {dateFilter === 'today' && 'Today'}
-                        {dateFilter === 'week' && 'Last 7 Days'}
-                        {dateFilter === 'month' && 'Last 30 Days'}
-                        {dateFilter === '3months' && 'Last 3 Months'}
-                        {dateFilter === 'year' && 'Last Year'}
-                        {dateFilter === 'custom' && (customStartDate || customEndDate) 
-                          ? `${customStartDate || '...'} - ${customEndDate || '...'}` 
-                          : 'Custom Range'}
+                        {dateFilter === 'all' ? 'All Time' :
+                         dateFilter === 'today' ? 'Today' :
+                         dateFilter === 'week' ? 'Last 7 Days' :
+                         dateFilter === 'month' ? 'Last 30 Days' :
+                         dateFilter === '3months' ? 'Last 3 Months' :
+                         dateFilter === 'year' ? 'Last Year' :
+                         dateFilter === 'custom' && (customStartDate || customEndDate) 
+                           ? `${customStartDate || '...'} - ${customEndDate || '...'}` 
+                           : 'Custom Range'}
                       </span>
                       <ChevronDown className="h-4 w-4 ml-2 opacity-50" />
                     </Button>
@@ -450,15 +461,15 @@ export default function AccountBalance() {
                     <Button variant="outline" className="w-full sm:w-[200px] justify-start">
                       <DollarSign className="h-4 w-4 mr-2" />
                       <span className="flex-1 text-left">
-                        {amountFilter === 'all' && 'All Amounts'}
-                        {amountFilter === '0-50' && '$0 - $50'}
-                        {amountFilter === '50-100' && '$50 - $100'}
-                        {amountFilter === '100-500' && '$100 - $500'}
-                        {amountFilter === '500-1000' && '$500 - $1,000'}
-                        {amountFilter === '1000+' && '$1,000+'}
-                        {amountFilter === 'custom' && (customMinAmount || customMaxAmount)
-                          ? `$${customMinAmount || '0'} - $${customMaxAmount || '∞'}`
-                          : 'Custom Range'}
+                        {amountFilter === 'all' ? 'All Amounts' :
+                         amountFilter === '0-50' ? '$0 - $50' :
+                         amountFilter === '50-100' ? '$50 - $100' :
+                         amountFilter === '100-500' ? '$100 - $500' :
+                         amountFilter === '500-1000' ? '$500 - $1,000' :
+                         amountFilter === '1000+' ? '$1,000+' :
+                         amountFilter === 'custom' && (customMinAmount || customMaxAmount)
+                           ? `$${customMinAmount || '0'} - $${customMaxAmount || '∞'}`
+                           : 'Custom Range'}
                       </span>
                       <ChevronDown className="h-4 w-4 ml-2 opacity-50" />
                     </Button>
@@ -531,6 +542,10 @@ export default function AccountBalance() {
               data={displayTransactions} 
               columns={columns}
               emptyMessage="No transactions found"
+              onRowClick={(transaction) => {
+                setSelectedTransaction(transaction);
+                setShowTransactionModal(true);
+              }}
             />
           </div>
         </ResizableSection>
@@ -589,6 +604,140 @@ export default function AccountBalance() {
           <li>• Balance cannot be withdrawn as cash</li>
         </ul>
       </div>
+
+      {/* Transaction Detail Modal */}
+      <Dialog open={showTransactionModal} onOpenChange={setShowTransactionModal}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Transaction Details</DialogTitle>
+            <DialogDescription>
+              Detailed information about this transaction
+            </DialogDescription>
+          </DialogHeader>
+          {selectedTransaction && (() => {
+            // Extract top-up information from description
+            let topUpType = '';
+            let topUpName = '';
+            
+            if (selectedTransaction.type === 'top_up' && selectedTransaction.description) {
+              if (selectedTransaction.description.toLowerCase().includes('batch top-up')) {
+                topUpType = 'Batch Top-Up';
+                topUpName = selectedTransaction.description.replace(/^Batch Top-up - /i, '').trim();
+              } else if (selectedTransaction.description.toLowerCase().includes('individual top-up')) {
+                topUpType = 'Individual Top-Up';
+                topUpName = selectedTransaction.description.replace(/^Individual Top-up - /i, '').trim();
+              } else {
+                topUpName = selectedTransaction.description;
+              }
+            }
+            
+            return (
+              <div className="space-y-5 py-4">
+                {/* Amount - Large Display at Top */}
+                <div className="text-center pb-4 border-b">
+                  <p className={`text-5xl font-bold mb-2 ${
+                    Number(selectedTransaction.amount) >= 0 ? 'text-success' : 'text-destructive'
+                  }`}>
+                    {Number(selectedTransaction.amount) >= 0 ? '+' : '-'}$
+                    {Math.abs(Number(selectedTransaction.amount)).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                  </p>
+                  <p className="text-sm text-muted-foreground">Transaction Amount</p>
+                </div>
+
+                {/* Transaction Details */}
+                <div className="space-y-4">
+                  {/* Transaction Type */}
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1.5">Transaction Type</p>
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-primary/10 text-primary">
+                      {selectedTransaction.type === 'course_fee' ? 'Course Payment' : 'Balance Top-up'}
+                    </span>
+                  </div>
+
+                  {/* Top-Up Type (for top-ups only) */}
+                  {selectedTransaction.type === 'top_up' && topUpType && (
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1.5">Top-Up Type</p>
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-accent/10 text-accent border border-accent/20">
+                        {topUpType}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Top-Up Name (for top-ups only) */}
+                  {selectedTransaction.type === 'top_up' && topUpName && (
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1.5">Top-Up Order Name</p>
+                      <p className="font-medium text-foreground">
+                        {topUpName}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Date and Time */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1.5">Date</p>
+                      <p className="font-medium text-foreground">
+                        {new Date(selectedTransaction.created_at).toLocaleDateString('en-GB', {
+                          day: '2-digit',
+                          month: 'short',
+                          year: 'numeric'
+                        })}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1.5">Time</p>
+                      <p className="font-medium text-foreground">
+                        {new Date(selectedTransaction.created_at).toLocaleTimeString('en-US', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          hour12: true
+                        })}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Full Description (for course payments) */}
+                  {selectedTransaction.type === 'course_fee' && selectedTransaction.description && (
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1.5">Description</p>
+                      <p className="font-medium text-foreground">
+                        {selectedTransaction.description}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Status */}
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1.5">Status</p>
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-success/10 text-success border border-success/20">
+                      {selectedTransaction.status.charAt(0).toUpperCase() + selectedTransaction.status.slice(1)}
+                    </span>
+                  </div>
+
+                  {/* Reference ID */}
+                  {selectedTransaction.reference && (
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1.5">Reference ID</p>
+                      <p className="font-mono text-sm font-medium text-foreground bg-muted px-3 py-2 rounded">
+                        {selectedTransaction.reference}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Close Button */}
+                <div className="flex justify-end pt-2 border-t">
+                  <Button variant="outline" onClick={() => setShowTransactionModal(false)}>
+                    Close
+                  </Button>
+                </div>
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

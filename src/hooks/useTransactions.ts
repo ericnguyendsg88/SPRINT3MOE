@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 export interface Transaction {
   id: string;
   account_id: string;
-  type: 'top_up' | 'course_fee' | 'payment' | 'refund';
+  type: 'top_up' | 'course_fee';
   amount: number;
   description: string | null;
   reference: string | null;

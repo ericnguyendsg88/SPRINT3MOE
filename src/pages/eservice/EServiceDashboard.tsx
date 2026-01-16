@@ -18,6 +18,7 @@ import { CustomSectionRenderer } from '@/components/editor/CustomSectionRenderer
 import { ColumnEditor } from '@/components/editor/ColumnEditor';
 import { ColumnDefinition, LayoutItem } from '@/hooks/usePageLayout';
 import { formatDate } from '@/lib/dateUtils';
+import { formatCurrency } from '@/lib/utils';
 
 const SECTION_IDS = ['welcome', 'stats', 'courses'];
 
@@ -364,7 +365,7 @@ export default function EServiceDashboard() {
           <div className="grid gap-4 md:grid-cols-3">
             <StatCard
               title="Account Balance"
-              value={`$${Number(currentUser.balance).toFixed(2)}`}
+              value={`$${formatCurrency(Number(currentUser.balance), 0)}`}
               subtitle="Available for course fees"
               icon={Wallet}
               variant="success"
@@ -385,7 +386,7 @@ export default function EServiceDashboard() {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Outstanding Fees</p>
-                    <p className="text-3xl font-bold text-foreground">${outstandingAmount.toFixed(2)}</p>
+                    <p className="text-3xl font-bold text-foreground">${formatCurrency(outstandingAmount, 0)}</p>
                     <p className="text-sm text-muted-foreground">{pendingCharges.length} pending charge(s)</p>
                   </div>
                 </div>

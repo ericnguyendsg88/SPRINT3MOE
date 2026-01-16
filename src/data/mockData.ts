@@ -124,12 +124,12 @@ export const mockTransactions: Transaction[] = [
   {
     id: 't5',
     accountId: '1',
-    type: 'payment',
-    amount: 300.00,
-    description: 'Online Payment - Course Fee Settlement',
+    type: 'course_fee',
+    amount: -300.00,
+    description: 'Course Fee Settlement',
     date: '2024-02-10',
     status: 'completed',
-    reference: 'PY-2024-003456',
+    reference: 'CF-2024-003456',
   },
 ];
 

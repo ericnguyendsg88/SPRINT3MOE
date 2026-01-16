@@ -13,6 +13,7 @@ import { useTransactionsByAccount } from '@/hooks/useTransactions';
 import { usePageLayout, SectionSize, ColumnDefinition, LayoutItem } from '@/hooks/usePageLayout';
 import { formatDate } from '@/lib/dateUtils';
 import { formatTime } from '@/lib/dateUtils';
+import { formatCurrency } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { DateInput } from '@/components/ui/date-input';
 import { Label } from '@/components/ui/label';
@@ -390,7 +391,7 @@ export default function StudentDetail() {
       header: 'Total Fee',
       render: (item: typeof enrolledCourses[0]) => (
         <span className="font-semibold text-foreground">
-          ${item.totalFee.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+          ${item.totalFee.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
         </span>
       )
     },
@@ -474,7 +475,7 @@ export default function StudentDetail() {
       key: 'amount',
       header: 'Amount',
       render: (item: typeof studentCharges[0]) => (
-        <span className="font-semibold text-foreground">${Number(item.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+        <span className="font-semibold text-foreground">${Number(item.amount).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
       )
     },
     {
@@ -517,7 +518,7 @@ export default function StudentDetail() {
       key: 'amount',
       header: 'Amount',
       render: (item: typeof studentCharges[0]) => (
-        <span className="font-semibold text-foreground">${Number(item.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+        <span className="font-semibold text-foreground">${Number(item.amount).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
       )
     },
     {
@@ -604,7 +605,7 @@ export default function StudentDetail() {
       case 'currency':
         return (
           <span className="font-semibold text-foreground">
-            ${Number(value).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+            ${Number(value).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
           </span>
         );
       case 'date': {
@@ -674,7 +675,7 @@ export default function StudentDetail() {
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Balance</p>
-                      <p className="text-2xl font-bold text-foreground">${Number(account.balance).toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+                      <p className="text-2xl font-bold text-foreground">${Number(account.balance).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -705,7 +706,7 @@ export default function StudentDetail() {
                     <div>
                       <p className="text-sm text-muted-foreground">Outstanding Fees</p>
                       <p className={`text-2xl font-bold ${totalOutstanding > 0 ? 'text-warning' : 'text-success'}`}>
-                        ${totalOutstanding.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        ${totalOutstanding.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
                       </p>
                     </div>
                   </div>
@@ -921,7 +922,7 @@ export default function StudentDetail() {
                       header: 'Amount',
                       render: (transaction) => (
                         <span className="font-semibold text-success">
-                          +${Number(transaction.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                          +${Number(transaction.amount).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
                         </span>
                       ),
                     },
@@ -1077,7 +1078,7 @@ export default function StudentDetail() {
                     This will deactivate the account for {account.name}. The account will remain in the system but the student will not be able to access the e-service portal or make payments.
                     {totalOutstanding > 0 && (
                       <span className="block mt-2 text-warning font-medium">
-                        Warning: This student has ${totalOutstanding.toFixed(2)} in outstanding fees.
+                        Warning: This student has ${formatCurrency(totalOutstanding, 0)} in outstanding fees.
                       </span>
                     )}
                   </AlertDialogDescription>

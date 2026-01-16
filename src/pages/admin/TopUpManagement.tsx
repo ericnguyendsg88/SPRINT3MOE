@@ -44,10 +44,13 @@ export default function TopUpManagement() {
   const navigate = useNavigate();
   const [isTopUpDialogOpen, setIsTopUpDialogOpen] = useState(false);
   const [topUpMode, setTopUpMode] = useState<'individual' | 'batch'>('individual');
+  const [individualStep, setIndividualStep] = useState<1 | 2 | 3>(1); // 1: Select Account, 2: Details, 3: Preview
   const [selectedAccount, setSelectedAccount] = useState('');
   const [topUpAmount, setTopUpAmount] = useState('');
+  const [topUpDescription, setTopUpDescription] = useState('');
   const [batchAmount, setBatchAmount] = useState('');
   const [batchRuleName, setBatchRuleName] = useState('');
+  const [batchDescription, setBatchDescription] = useState('');
   const [scheduleDate, setScheduleDate] = useState('');
   const [scheduleTime, setScheduleTime] = useState('09:00');
   const [executeNow, setExecuteNow] = useState(true);
@@ -411,17 +414,22 @@ export default function TopUpManagement() {
           balance: Number(account.balance) + amount,
         });
         
-        // Create transaction record
+        // Generate reference ID
+        const referenceId = `TOPUP-${Date.now()}`;
+        
+        // Create transaction record with description and reference ID
         await createTransactionMutation.mutateAsync({
           account_id: account.id,
           type: 'top_up',
           amount: amount,
-          description: 'Individual Top-up',
-          reference: `TOPUP-${Date.now()}`,
+          description: topUpDescription ? `Individual Top-up - ${topUpDescription}` : 'Individual Top-up',
+          reference: referenceId,
           status: 'completed',
         });
         
-        toast.success(`$${formatCurrency(amount, 0)} credited to ${account.name}'s account`);
+        toast.success(`$${formatCurrency(amount, 0)} credited to ${account.name}'s account`, {
+          description: `Reference ID: ${referenceId}`,
+        });
       } else {
         toast.success('Top-up scheduled successfully');
       }
@@ -437,7 +445,7 @@ export default function TopUpManagement() {
   };
 
   const handleBatchTopUp = async () => {
-    if (!batchRuleName || !batchAmount) {
+    if (!batchRuleName || !batchAmount || !batchDescription) {
       toast.error('Please fill in all mandatory fields');
       return;
     }
@@ -448,6 +456,9 @@ export default function TopUpManagement() {
 
     const amount = parseFloat(batchAmount);
     const targetedAccounts = getTargetedAccounts();
+    
+    // Generate reference ID for batch
+    const batchReferenceId = `BATCH-${Date.now()}`;
 
     try {
       // Create a schedule record for batch top-up
@@ -465,6 +476,8 @@ export default function TopUpManagement() {
         account_id: null,
         account_name: null,
         remarks: JSON.stringify({
+          description: batchDescription,
+          referenceId: batchReferenceId,
           targetingType: batchTargeting,
           criteria: batchTargeting === 'everyone' ? {} : {
             minAge: minAge ? parseInt(minAge) : null,
@@ -480,14 +493,36 @@ export default function TopUpManagement() {
         }),
       });
 
+      // If executing immediately, create transactions for all targeted accounts
+      if (executeNow) {
+        for (const account of targetedAccounts) {
+          await updateAccountMutation.mutateAsync({
+            id: account.id,
+            balance: Number(account.balance) + amount,
+          });
+          
+          await createTransactionMutation.mutateAsync({
+            account_id: account.id,
+            type: 'top_up',
+            amount: amount,
+            description: `Batch Top-up - ${batchDescription}`,
+            reference: batchReferenceId,
+            status: 'completed',
+          });
+        }
+      }
+      
       toast.success(executeNow ? 'Batch top-up completed successfully' : 'Batch top-up scheduled successfully', {
-        description: `${targetedAccounts.length} account(s) targeted`,
+        description: executeNow 
+          ? `${targetedAccounts.length} account(s) credited | Reference ID: ${batchReferenceId}`
+          : `${targetedAccounts.length} account(s) targeted`,
       });
 
       // Reset form
       setIsTopUpDialogOpen(false);
       setBatchAmount('');
       setBatchRuleName('');
+      setBatchDescription('');
       setScheduleDate('');
       setScheduleTime('09:00');
       setExecuteNow(true);
@@ -506,6 +541,19 @@ export default function TopUpManagement() {
 
   const scheduledCount = topUpSchedules.filter(s => s.status === 'scheduled').length;
   const completedCount = topUpSchedules.filter(s => s.status === 'completed').length;
+
+  // Recently created top-ups (last 7 days)
+  const recentlyCreatedTopUps = useMemo(() => {
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    
+    return [...topUpSchedules]
+      .filter(schedule => {
+        const createdDate = new Date(schedule.created_at);
+        return createdDate >= sevenDaysAgo;
+      })
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }, [topUpSchedules]);
 
   // Upcoming top-ups (all scheduled)
   const upcomingTopUps = useMemo(() => {
@@ -640,6 +688,140 @@ export default function TopUpManagement() {
       });
     }
   };
+
+  // Columns for recently created table (without scheduled date, with created by)
+  const recentlyCreatedColumns = [
+    { 
+      key: 'type', 
+      header: (
+        <button 
+          onClick={() => handleSort('type')}
+          className="flex items-center font-medium hover:text-foreground transition-colors"
+        >
+          Type
+          {getSortIcon('type')}
+        </button>
+      ),
+      render: (item: typeof topUpSchedules[0]) => (
+        <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
+          item.type === 'batch' 
+            ? 'bg-primary/10 text-primary border border-primary/20' 
+            : 'bg-accent/10 text-accent border border-accent/20'
+        }`}>
+          {item.type === 'batch' ? (
+            <Users className="h-3.5 w-3.5" />
+          ) : (
+            <User className="h-3.5 w-3.5" />
+          )}
+          {item.type === 'batch' ? 'Batch' : 'Individual'}
+        </div>
+      )
+    },
+    { 
+      key: 'name', 
+      header: (
+        <button 
+          onClick={() => handleSort('name')}
+          className="flex items-center font-medium hover:text-foreground transition-colors"
+        >
+          Name
+          {getSortIcon('name')}
+        </button>
+      ),
+      render: (item: typeof topUpSchedules[0]) => (
+        <div>
+          {item.type === 'individual' && item.account_id ? (
+            <div>
+              <button
+                className="font-medium text-primary hover:underline text-left"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleNavigateToStudent(item.account_id!);
+                }}
+              >
+                {item.account_name}
+              </button>
+              {(() => {
+                const account = accountHolders.find(a => a.id === item.account_id);
+                return account ? (
+                  <p className="text-xs text-muted-foreground">{account.nric}</p>
+                ) : null;
+              })()}
+            </div>
+          ) : (
+            <p className="font-medium text-foreground">{item.rule_name}</p>
+          )}
+        </div>
+      )
+    },
+    { 
+      key: 'amount', 
+      header: (
+        <button 
+          onClick={() => handleSort('amount')}
+          className="flex items-center font-medium hover:text-foreground transition-colors"
+        >
+          Amount
+          {getSortIcon('amount')}
+        </button>
+      ),
+      render: (item: typeof topUpSchedules[0]) => (
+        <span className="font-semibold text-success">${formatCurrency(Number(item.amount), 0)}</span>
+      )
+    },
+    { 
+      key: 'status', 
+      header: (
+        <button 
+          onClick={() => handleSort('status')}
+          className="flex items-center font-medium hover:text-foreground transition-colors"
+        >
+          Status
+          {getSortIcon('status')}
+        </button>
+      ),
+      render: (item: typeof topUpSchedules[0]) => (
+        <StatusBadge status={item.status} />
+      )
+    },
+    { 
+      key: 'createdBy', 
+      header: 'Created By',
+      render: (item: typeof topUpSchedules[0]) => (
+        <span className="font-medium text-foreground">Admin 1</span>
+      )
+    },
+    { 
+      key: 'createdAt', 
+      header: (
+        <button 
+          onClick={() => handleSort('created_at')}
+          className="flex items-center font-medium hover:text-foreground transition-colors"
+        >
+          Date & Time
+          {getSortIcon('created_at')}
+        </button>
+      ),
+      render: (item: typeof topUpSchedules[0]) => (
+        <div className="flex flex-col">
+          <span className="font-medium text-foreground">
+            {new Date(item.created_at).toLocaleDateString('en-GB', {
+              day: '2-digit',
+              month: 'short',
+              year: 'numeric'
+            })}
+          </span>
+          <span className="text-xs text-muted-foreground">
+            {new Date(item.created_at).toLocaleTimeString('en-US', {
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: true
+            })}
+          </span>
+        </div>
+      )
+    },
+  ];
 
   const scheduleColumns = [
     { 
@@ -795,11 +977,32 @@ export default function TopUpManagement() {
         </Button>
       </div>
 
-      {/* Top-up Tracking */}
+      {/* Recently Created Top-ups (Last 7 Days) */}
       <Card>
         <CardHeader className="pb-3">
           <div>
-            <CardTitle>Top-Up Tracking</CardTitle>
+            <CardTitle>Recently Created</CardTitle>
+            <CardDescription>Top-up orders created in the last 7 days</CardDescription>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <DataTable 
+            data={recentlyCreatedTopUps} 
+            columns={recentlyCreatedColumns}
+            emptyMessage="No top-ups created in the last 7 days"
+            onRowClick={(schedule) => {
+              setSelectedScheduleDetail(schedule);
+              setShowDetailModal(true);
+            }}
+          />
+        </CardContent>
+      </Card>
+
+      {/* All Top-up Tracking */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div>
+            <CardTitle>All Top-up</CardTitle>
             <CardDescription>Track all top-up operations</CardDescription>
           </div>
         </CardHeader>
@@ -1064,7 +1267,17 @@ export default function TopUpManagement() {
       </Card>
 
       {/* Unified Top-up Dialog with Tabs */}
-      <Dialog open={isTopUpDialogOpen} onOpenChange={setIsTopUpDialogOpen}>
+      <Dialog open={isTopUpDialogOpen} onOpenChange={(open) => {
+        setIsTopUpDialogOpen(open);
+        if (!open) {
+          // Reset form when dialog closes
+          setIndividualStep(1);
+          setSelectedAccount('');
+          setTopUpAmount('');
+          setTopUpDescription('');
+          setAccountSearch('');
+        }
+      }}>
         <DialogContent className="w-[900px] max-w-[95vw] h-[90vh] max-h-[90vh] flex flex-col overflow-hidden">
           <DialogHeader className="flex-shrink-0">
             <DialogTitle>Top Up</DialogTitle>
@@ -1072,7 +1285,11 @@ export default function TopUpManagement() {
               Add funds to student accounts
             </DialogDescription>
           </DialogHeader>
-          <Tabs value={topUpMode} onValueChange={(value) => setTopUpMode(value as 'individual' | 'batch')} className="flex flex-col flex-1 overflow-hidden">
+          <Tabs value={topUpMode} onValueChange={(value) => {
+            setTopUpMode(value as 'individual' | 'batch');
+            // Reset individual step when switching tabs
+            setIndividualStep(1);
+          }} className="flex flex-col flex-1 overflow-hidden">
             <TabsList className="grid w-full grid-cols-2 mb-4 flex-shrink-0">
               <TabsTrigger value="individual" className="flex items-center gap-2">
                 <User className="h-4 w-4" />
@@ -1086,97 +1303,216 @@ export default function TopUpManagement() {
             
             {/* Individual Top-up Content */}
             <TabsContent value="individual" className="mt-0 flex-1 overflow-y-auto">
-          <div className="grid gap-4 py-4 pr-2">
-            <div className="grid gap-2">
-              <Label>Search Account</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search by name or NRIC..."
-                  value={accountSearch}
-                  onChange={(e) => setAccountSearch(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
+          {/* Step Indicator */}
+          <div className="flex items-center justify-center gap-2 mb-6 px-2">
+            <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${individualStep >= 1 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+              1
             </div>
-            {filteredAccountHolders.length > 0 && (
-              <div className="grid gap-2">
-                <Label>Select Account</Label>
-                <div className="border rounded-lg p-2 space-y-2 max-h-[300px] overflow-y-auto">
-                  {filteredAccountHolders.map(account => (
-                    <button
-                      key={account.id}
-                      onClick={() => setSelectedAccount(account.id)}
-                      className={`w-full text-left p-3 rounded-md transition-colors ${
-                        selectedAccount === account.id
-                          ? 'bg-primary/10 border border-primary/20'
-                          : 'hover:bg-muted/50'
-                      }`}
-                    >
-                      <div className="font-medium text-sm">{account.name}</div>
+            <div className={`h-[2px] w-12 ${individualStep >= 2 ? 'bg-primary' : 'bg-muted'}`} />
+            <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${individualStep >= 2 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+              2
+            </div>
+            <div className={`h-[2px] w-12 ${individualStep >= 3 ? 'bg-primary' : 'bg-muted'}`} />
+            <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${individualStep >= 3 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+              3
+            </div>
+          </div>
+
+          {/* Step 1: Select Account */}
+          {individualStep === 1 && (
+            <>
+              <div className="grid gap-4 py-4 pr-2">
+                <div className="grid gap-2">
+                  <Label>Search Account</Label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search by name or NRIC..."
+                      value={accountSearch}
+                      onChange={(e) => setAccountSearch(e.target.value)}
+                      className="pl-9"
+                    />
+                  </div>
+                </div>
+                {filteredAccountHolders.length > 0 && (
+                  <div className="grid gap-2">
+                    <Label>Select Account</Label>
+                    <div className="border rounded-lg p-2 space-y-2 max-h-[400px] overflow-y-auto">
+                      {filteredAccountHolders.map(account => (
+                        <button
+                          key={account.id}
+                          onClick={() => setSelectedAccount(account.id)}
+                          className={`w-full text-left p-3 rounded-md transition-colors ${
+                            selectedAccount === account.id
+                              ? 'bg-primary/10 border border-primary/20'
+                              : 'hover:bg-muted/50'
+                          }`}
+                        >
+                          <div className="font-medium text-sm">{account.name}</div>
+                          <div className="text-xs text-muted-foreground">{account.nric}</div>
+                          <div className="text-xs text-muted-foreground">Balance: ${formatCurrency(Number(account.balance), 0)}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="flex justify-end gap-3">
+                <Button variant="outline" onClick={() => {
+                  setIsTopUpDialogOpen(false);
+                  setIndividualStep(1);
+                  setSelectedAccount('');
+                  setAccountSearch('');
+                }}>
+                  Cancel
+                </Button>
+                <Button 
+                  variant="accent" 
+                  onClick={() => setIndividualStep(2)}
+                  disabled={!selectedAccount}
+                >
+                  Continue
+                </Button>
+              </div>
+            </>
+          )}
+
+          {/* Step 2: Details */}
+          {individualStep === 2 && (
+            <>
+              <div className="grid gap-4 py-4 pr-2">
+                {(() => {
+                  const account = accountHolders.find(a => a.id === selectedAccount);
+                  return account && (
+                    <div className="bg-muted/50 p-3 rounded-lg mb-2">
+                      <div className="text-sm font-medium">{account.name}</div>
                       <div className="text-xs text-muted-foreground">{account.nric}</div>
-                      <div className="text-xs text-muted-foreground">Balance: ${formatCurrency(Number(account.balance), 0)}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-            <div className="grid gap-2">
-              <Label>Top-up Amount ($)</Label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">S$</span>
-                <Input
-                  type="number"
-                  placeholder="Enter amount"
-                  value={topUpAmount}
-                  onChange={(e) => setTopUpAmount(e.target.value)}
-                  min="0"
-                  step="0.01"
-                  className="pl-9"
-                />
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="individual-execute-now"
-                checked={executeNow}
-                onCheckedChange={(checked) => setExecuteNow(checked === true)}
-              />
-              <Label htmlFor="individual-execute-now">Execute immediately</Label>
-            </div>
-            {!executeNow && (
-              <div className="grid grid-cols-2 gap-3">
+                    </div>
+                  );
+                })()}
                 <div className="grid gap-2">
-                  <Label>Schedule Date <span className="text-destructive">*</span></Label>
-                  <DateInput
-                    value={scheduleDate}
-                    onChange={setScheduleDate}
-                    minDate={new Date()}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label>Schedule Time <span className="text-destructive">*</span></Label>
+                  <Label>Description <span className="text-destructive">*</span></Label>
                   <Input
-                    type="time"
-                    value={scheduleTime}
-                    onChange={(e) => setScheduleTime(e.target.value)}
+                    placeholder="e.g., Monthly allowance, Education support, etc."
+                    value={topUpDescription}
+                    onChange={(e) => setTopUpDescription(e.target.value)}
                   />
                 </div>
+                <div className="grid gap-2">
+                  <Label>Top-up Amount <span className="text-destructive">*</span></Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">S$</span>
+                    <Input
+                      type="number"
+                      placeholder="Enter amount"
+                      value={topUpAmount}
+                      onChange={(e) => setTopUpAmount(e.target.value)}
+                      min="0"
+                      step="0.01"
+                      className="pl-9"
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="individual-execute-now"
+                    checked={executeNow}
+                    onCheckedChange={(checked) => setExecuteNow(checked === true)}
+                  />
+                  <Label htmlFor="individual-execute-now">Execute immediately</Label>
+                </div>
+                {!executeNow && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="grid gap-2">
+                      <Label>Schedule Date <span className="text-destructive">*</span></Label>
+                      <DateInput
+                        value={scheduleDate}
+                        onChange={setScheduleDate}
+                        minDate={new Date()}
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label>Schedule Time <span className="text-destructive">*</span></Label>
+                      <Input
+                        type="time"
+                        value={scheduleTime}
+                        onChange={(e) => setScheduleTime(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-          <div className="flex justify-end gap-3">
-            <Button variant="outline" onClick={() => setIsTopUpDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button 
-              variant="accent" 
-              onClick={() => setShowIndividualPreview(true)}
-              disabled={!selectedAccount || !topUpAmount || (!executeNow && (!scheduleDate || !scheduleTime))}
-            >
-              Preview & Continue
-            </Button>
-          </div>
+              <div className="flex justify-end gap-3">
+                <Button variant="outline" onClick={() => setIndividualStep(1)}>
+                  Back
+                </Button>
+                <Button 
+                  variant="accent" 
+                  onClick={() => setIndividualStep(3)}
+                  disabled={!topUpDescription || !topUpAmount || (!executeNow && (!scheduleDate || !scheduleTime))}
+                >
+                  Continue to Preview
+                </Button>
+              </div>
+            </>
+          )}
+
+          {/* Step 3: Preview */}
+          {individualStep === 3 && (
+            <>
+              <div className="grid gap-4 py-4 pr-2">
+                {(() => {
+                  const account = accountHolders.find(a => a.id === selectedAccount);
+                  const amount = parseFloat(topUpAmount);
+                  return account && (
+                    <div className="space-y-4">
+                      <div className="border rounded-lg p-4 space-y-3">
+                        <div className="flex justify-between items-start">
+                          <span className="text-sm font-medium text-muted-foreground">Account</span>
+                          <div className="text-right">
+                            <div className="text-sm font-medium">{account.name}</div>
+                            <div className="text-xs text-muted-foreground">{account.nric}</div>
+                          </div>
+                        </div>
+                        <div className="flex justify-between items-start">
+                          <span className="text-sm font-medium text-muted-foreground">Description</span>
+                          <span className="text-sm font-medium text-right">{topUpDescription}</span>
+                        </div>
+                        <div className="flex justify-between items-start">
+                          <span className="text-sm font-medium text-muted-foreground">Amount</span>
+                          <span className="text-sm font-bold text-success">+S${formatCurrency(amount, 0)}</span>
+                        </div>
+                        <div className="flex justify-between items-start">
+                          <span className="text-sm font-medium text-muted-foreground">Execution</span>
+                          <span className="text-sm font-medium text-right">
+                            {executeNow ? 'Immediate' : `Scheduled: ${scheduleDate} at ${scheduleTime}`}
+                          </span>
+                        </div>
+                        <div className="border-t pt-3 flex justify-between items-start">
+                          <span className="text-sm font-medium text-muted-foreground">New Balance</span>
+                          <span className="text-base font-bold text-primary">
+                            S${formatCurrency(Number(account.balance) + amount, 0)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+              <div className="flex justify-end gap-3">
+                <Button variant="outline" onClick={() => setIndividualStep(2)}>
+                  Back
+                </Button>
+                <Button 
+                  variant="accent" 
+                  onClick={handleIndividualTopUp}
+                  disabled={createScheduleMutation.isPending}
+                >
+                  {createScheduleMutation.isPending ? 'Processing...' : 'Confirm & Submit'}
+                </Button>
+              </div>
+            </>
+          )}
             </TabsContent>
             
             {/* Batch Top-up Content */}
@@ -1204,6 +1540,17 @@ export default function TopUpManagement() {
                   className="pl-9"
                 />
               </div>
+            </div>
+            <div className="grid gap-2">
+              <Label>Description <span className="text-destructive">*</span></Label>
+              <Input
+                placeholder="e.g., Monthly government scheme, Education fund support, etc."
+                value={batchDescription}
+                onChange={(e) => setBatchDescription(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                This description will help account holders understand the source of the top-up
+              </p>
             </div>
 
             {/* Targeting Options */}
@@ -1323,11 +1670,10 @@ export default function TopUpManagement() {
                   <div className="grid gap-2">
                     <Label className="text-sm">Residential Status</Label>
                     <div className="space-y-2">
-                      {['sc', 'spr', 'non_resident'].map(status => {
+                      {['sc', 'spr'].map(status => {
                         const labels: Record<string, string> = {
                           sc: 'Singapore Citizen',
                           spr: 'Singapore Permanent Resident',
-                          non_resident: 'Non-Resident',
                         };
                         return (
                           <div key={status} className="flex items-center gap-2">
@@ -1427,7 +1773,7 @@ export default function TopUpManagement() {
             <Button 
               variant="accent" 
               onClick={() => setShowBatchPreview(true)}
-              disabled={!batchRuleName || !batchAmount || (!executeNow && (!scheduleDate || !scheduleTime))}
+              disabled={!batchRuleName || !batchAmount || !batchDescription || (!executeNow && (!scheduleDate || !scheduleTime))}
             >
               Preview & Continue
             </Button>
@@ -1515,6 +1861,10 @@ export default function TopUpManagement() {
               <div>
                 <p className="text-xs text-muted-foreground">Amount per Account</p>
                 <p className="font-semibold text-success">S${formatCurrency(parseFloat(batchAmount) || 0, 0)}</p>
+              </div>
+              <div className="col-span-2">
+                <p className="text-xs text-muted-foreground">Description</p>
+                <p className="font-medium">{batchDescription}</p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Targeting</p>
@@ -1754,23 +2104,6 @@ export default function TopUpManagement() {
                       hour: '2-digit',
                       minute: '2-digit'
                     })}
-                  </p>
-                </div>
-              )}
-
-              {/* Targeting Criteria for Batch */}
-              {selectedScheduleDetail.type === 'batch' && selectedScheduleDetail.remarks && (
-                <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <p className="text-xs font-medium text-blue-900 dark:text-blue-100 mb-2">Targeting Criteria</p>
-                  <p className="text-sm text-blue-900 dark:text-blue-100">
-                    {(() => {
-                      try {
-                        const data = JSON.parse(selectedScheduleDetail.remarks);
-                        return data.summary;
-                      } catch (e) {
-                        return selectedScheduleDetail.remarks;
-                      }
-                    })()}
                   </p>
                 </div>
               )}

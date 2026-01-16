@@ -12,6 +12,7 @@ import { useCourse, useUpdateCourse, useDeleteCourse } from '@/hooks/useCourses'
 import { useEnrollments, useCreateEnrollment, useDeleteEnrollment } from '@/hooks/useEnrollments';
 import { useAccountHolders } from '@/hooks/useAccountHolders';
 import { useCourseCharges, useCreateCourseCharge } from '@/hooks/useCourseCharges';
+import { formatCurrency } from '@/lib/utils';
 import {
   Select,
   SelectContent,
@@ -559,7 +560,7 @@ export default function CourseDetail() {
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Total Fee</p>
-                      <p className="text-2xl font-bold">${calculateCourseTotalFee().toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+                      <p className="text-2xl font-bold">${calculateCourseTotalFee().toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -747,8 +748,8 @@ export default function CourseDetail() {
                         fee: {
                           icon: <DollarSign className="h-5 w-5 text-muted-foreground mt-0.5" />,
                           value: getPaymentType() === 'One Time'
-                            ? `$${Number(course.fee).toFixed(2)}`
-                            : `$${Number(course.fee).toFixed(2)} / ${billingCycleLabels[course.billing_cycle as BillingCycle]}`,
+                            ? `$${formatCurrency(Number(course.fee), 0)}`
+                            : `$${formatCurrency(Number(course.fee), 0)} / ${billingCycleLabels[course.billing_cycle as BillingCycle]}`,
                         },
                       };
                       const config = fieldConfig[field.key];
@@ -959,7 +960,7 @@ export default function CourseDetail() {
                                 <p>Each student will be:</p>
                                 <ul className="list-disc list-inside mt-1 space-y-0.5">
                                   <li>Enrolled in the course with today's date</li>
-                                  <li>Charged the course fee of ${Number(course.fee).toFixed(2)}</li>
+                                  <li>Charged the course fee of ${formatCurrency(Number(course.fee), 0)}</li>
                                 </ul>
                               </div>
                               

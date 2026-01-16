@@ -324,7 +324,7 @@ export default function CourseFees() {
         // Create a transaction record for external payment received
         await createTransactionMutation.mutateAsync({
           account_id: currentUser.id,
-          type: 'payment',
+          type: 'top_up',
           amount: externalPaid,
           description: `External payment received via ${methodLabels[externalMethod]}`,
           reference: `EP-${Date.now()}`,

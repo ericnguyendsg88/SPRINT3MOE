@@ -135,10 +135,11 @@ export default function CourseManagement() {
   // Filtered and sorted courses
   const filteredAndSortedCourses = useMemo(() => {
     let filtered = courses.filter(course => {
-      // Search filter (course name, provider)
+      // Search filter (course name, provider, Course ID)
       const matchesSearch = 
         course.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        course.provider.toLowerCase().includes(searchQuery.toLowerCase());
+        course.provider.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        course.id.toLowerCase().includes(searchQuery.toLowerCase());
       
       // Provider filter (multi-select)
       const matchesProvider = providerFilter.length === 0 || providerFilter.includes(course.provider);
@@ -528,11 +529,20 @@ export default function CourseManagement() {
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
-                    placeholder="Search by course name or provider..."
+                    placeholder="Search by course name, provider, or Course ID..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9"
+                    className="pl-9 pr-9"
                   />
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      aria-label="Clear search"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
                 </div>
 
                 {/* All filters row */}
@@ -960,7 +970,7 @@ export default function CourseManagement() {
                           <TableCell className="text-foreground">{paymentType}</TableCell>
                           <TableCell className="text-muted-foreground">{billingCycleDisplay}</TableCell>
                           <TableCell className="font-semibold text-foreground">
-                            ${Number(course.fee).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            ${Number(course.fee).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
                           </TableCell>
                           <TableCell className="text-muted-foreground">
                             {course.mode_of_training ? modeLabels[course.mode_of_training] || course.mode_of_training : '—'}
