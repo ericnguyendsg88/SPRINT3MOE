@@ -427,7 +427,7 @@ export default function TopUpManagement() {
           status: 'completed',
         });
         
-        toast.success(`$${formatCurrency(amount, 0)} credited to ${account.name}'s account`, {
+        toast.success(`$${formatCurrency(amount)} credited to ${account.name}'s account`, {
           description: `Reference ID: ${referenceId}`,
         });
       } else {
@@ -764,7 +764,7 @@ export default function TopUpManagement() {
         </button>
       ),
       render: (item: typeof topUpSchedules[0]) => (
-        <span className="font-semibold text-success">${formatCurrency(Number(item.amount), 0)}</span>
+        <span className="font-semibold text-success">${formatCurrency(Number(item.amount))}</span>
       )
     },
     { 
@@ -793,11 +793,11 @@ export default function TopUpManagement() {
       key: 'createdAt', 
       header: (
         <button 
-          onClick={() => handleSort('created_at')}
+          onClick={() => handleSort('scheduledDate')}
           className="flex items-center font-medium hover:text-foreground transition-colors"
         >
           Date & Time
-          {getSortIcon('created_at')}
+          {getSortIcon('scheduledDate')}
         </button>
       ),
       render: (item: typeof topUpSchedules[0]) => (
@@ -1348,7 +1348,7 @@ export default function TopUpManagement() {
                         >
                           <div className="font-medium text-sm">{account.name}</div>
                           <div className="text-xs text-muted-foreground">{account.nric}</div>
-                          <div className="text-xs text-muted-foreground">Balance: ${formatCurrency(Number(account.balance), 0)}</div>
+                          <div className="text-xs text-muted-foreground">Balance: ${formatCurrency(Number(account.balance))}</div>
                         </button>
                       ))}
                     </div>
@@ -1478,7 +1478,7 @@ export default function TopUpManagement() {
                         </div>
                         <div className="flex justify-between items-start">
                           <span className="text-sm font-medium text-muted-foreground">Amount</span>
-                          <span className="text-sm font-bold text-success">+S${formatCurrency(amount, 0)}</span>
+                          <span className="text-sm font-bold text-success">+S${formatCurrency(amount)}</span>
                         </div>
                         <div className="flex justify-between items-start">
                           <span className="text-sm font-medium text-muted-foreground">Execution</span>
@@ -1489,7 +1489,7 @@ export default function TopUpManagement() {
                         <div className="border-t pt-3 flex justify-between items-start">
                           <span className="text-sm font-medium text-muted-foreground">New Balance</span>
                           <span className="text-base font-bold text-primary">
-                            S${formatCurrency(Number(account.balance) + amount, 0)}
+                            S${formatCurrency(Number(account.balance) + amount)}
                           </span>
                         </div>
                       </div>

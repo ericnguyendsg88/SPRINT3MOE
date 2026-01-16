@@ -6,7 +6,7 @@ import { StatusBadge } from '@/components/shared/StatusBadge';
 import { useCourseCharges } from '@/hooks/useCourseCharges';
 import { useAccountHolders } from '@/hooks/useAccountHolders';
 import { toast } from 'sonner';
-import { formatCurrency } from '@/lib/utils';
+//import { formatCurrency } from '@/lib/utils';
 import { usePageBuilder } from '@/components/editor/PageBuilder';
 import { EditModeToggle } from '@/components/editor/EditModeToggle';
 import { SortableContainer } from '@/components/editor/SortableContainer';
@@ -95,7 +95,7 @@ export default function FeeProcessing() {
       key: 'amount', 
       header: chargeColumnsConfig.find(c => c.key === 'amount')?.header || 'Amount',
       render: (item: typeof courseCharges[0]) => (
-        <span className="font-semibold text-foreground">${formatCurrency(Number(item.amount), 0)}</span>
+        <span className="font-semibold text-foreground">${formatCurrency(Number(item.amount))}</span>
       )
     },
     { 
@@ -163,28 +163,28 @@ export default function FeeProcessing() {
           <div className="grid gap-4 md:grid-cols-4">
             <StatCard
               title="Outstanding Fees"
-              value={`$${formatCurrency(totalOutstanding, 0)}`}
+              value={`$${formatCurrency(totalOutstanding)}`}
               subtitle={`${outstandingCharges.length} charges`}
               icon={Clock}
               variant="warning"
             />
             <StatCard
               title="Overdue Fees"
-              value={`$${formatCurrency(totalOverdue, 0)}`}
+              value={`$${formatCurrency(totalOverdue)}`}
               subtitle={`${overdueCharges.length} charges`}
               icon={AlertTriangle}
               variant="default"
             />
             <StatCard
               title="Collected This Month"
-              value={`$${formatCurrency(clearCharges.reduce((sum, c) => sum + Number(c.amount), 0), 0)}`}
+              value={`$${formatCurrency(clearCharges.reduce((sum, c) => sum + Number(c.amount), 0))}`}
               subtitle={`${clearCharges.length} payments`}
               icon={CheckCircle}
               variant="success"
             />
             <StatCard
               title="Total Due"
-              value={`$${formatCurrency(totalOutstanding + totalOverdue, 0)}`}
+              value={`$${formatCurrency(totalOutstanding + totalOverdue)}`}
               subtitle="To be collected"
               icon={CreditCard}
               variant="primary"

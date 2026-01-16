@@ -12,7 +12,6 @@ import { useCurrentUser } from '@/contexts/CurrentUserContext';
 import { useAccountHolders } from '@/hooks/useAccountHolders';
 import { formatPaymentMethod } from '@/lib/paymentStatusUtils';
 import { formatDate, getBillingCycleLabel, getUpcomingBillingCycles } from '@/lib/dateUtils';
-import { formatCurrency } from '@/lib/utils';
 import { usePageLayout } from '@/hooks/usePageLayout';
 import { FieldEditor, FieldDefinition } from '@/components/editor/FieldEditor';
 import { EditModeToggle } from '@/components/editor/EditModeToggle';
@@ -394,7 +393,7 @@ export default function EServiceCourseDetail() {
       header: 'Amount',
       render: (item: typeof courseCharges[0]) => (
         <span className="font-semibold text-success">
-          ${formatCurrency(Number(item.amount), 0)}
+          ${formatCurrency(Number(item.amount))}
         </span>
       )
     },
@@ -444,7 +443,7 @@ export default function EServiceCourseDetail() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Outstanding</p>
-                <p className="text-2xl font-bold text-warning">${formatCurrency(outstanding, 0)}</p>
+                <p className="text-2xl font-bold text-warning">${formatCurrency(outstanding)}</p>
               </div>
             </div>
           </CardContent>
@@ -458,7 +457,7 @@ export default function EServiceCourseDetail() {
               <div>
                 <p className="text-sm text-muted-foreground">Total Fee</p>
                 <p className="text-2xl font-bold">
-                  ${formatCurrency(totalCourseFee, 0)}
+                  ${formatCurrency(totalCourseFee)}
                 </p>
               </div>
             </div>
@@ -528,8 +527,8 @@ export default function EServiceCourseDetail() {
                   fee: {
                     icon: <DollarSign className="h-5 w-5 text-muted-foreground mt-0.5" />,
                     value: isOneTimePayment(course.billing_cycle) 
-                      ? `$${formatCurrency(Number(course.fee), 0)}` 
-                      : `$${formatCurrency(Number(course.fee), 0)} / ${billingCycleLabels[course.billing_cycle as BillingCycle]}`,
+                      ? `$${formatCurrency(Number(course.fee))}` 
+                      : `$${formatCurrency(Number(course.fee))} / ${billingCycleLabels[course.billing_cycle as BillingCycle]}`,
                   },
                 };
                 const config = fieldConfig[field.key];
@@ -599,7 +598,7 @@ export default function EServiceCourseDetail() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold text-foreground">${formatCurrency(Number(course.fee), 0)}</p>
+                    <p className="font-semibold text-foreground">${formatCurrency(Number(course.fee))}</p>
                     <StatusBadge status="scheduled" />
                   </div>
                 </div>

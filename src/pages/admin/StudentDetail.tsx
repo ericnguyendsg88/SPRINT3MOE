@@ -1078,7 +1078,7 @@ export default function StudentDetail() {
                     This will deactivate the account for {account.name}. The account will remain in the system but the student will not be able to access the e-service portal or make payments.
                     {totalOutstanding > 0 && (
                       <span className="block mt-2 text-warning font-medium">
-                        Warning: This student has ${formatCurrency(totalOutstanding, 0)} in outstanding fees.
+                        Warning: This student has ${formatCurrency(totalOutstanding)} in outstanding fees.
                       </span>
                     )}
                   </AlertDialogDescription>

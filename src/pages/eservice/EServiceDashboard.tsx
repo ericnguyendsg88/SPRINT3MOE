@@ -365,7 +365,7 @@ export default function EServiceDashboard() {
           <div className="grid gap-4 md:grid-cols-3">
             <StatCard
               title="Account Balance"
-              value={`$${formatCurrency(Number(currentUser.balance), 0)}`}
+              value={`$${formatCurrency(Number(currentUser.balance))}`}
               subtitle="Available for course fees"
               icon={Wallet}
               variant="success"
@@ -386,7 +386,7 @@ export default function EServiceDashboard() {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Outstanding Fees</p>
-                    <p className="text-3xl font-bold text-foreground">${formatCurrency(outstandingAmount, 0)}</p>
+                    <p className="text-3xl font-bold text-foreground">${formatCurrency(outstandingAmount)}</p>
                     <p className="text-sm text-muted-foreground">{pendingCharges.length} pending charge(s)</p>
                   </div>
                 </div>

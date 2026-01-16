@@ -9,7 +9,7 @@ import { useCourseCharges } from '@/hooks/useCourseCharges';
 import { useEnrollments } from '@/hooks/useEnrollments';
 import { useAccountHolders } from '@/hooks/useAccountHolders';
 import { Link, useNavigate } from 'react-router-dom';
-import { formatCurrency } from '@/lib/utils';
+//import { formatCurrency } from '@/lib/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -151,7 +151,7 @@ export default function AdminDashboard() {
       key: 'amount', 
       header: batchColumns.find(c => c.key === 'amount')?.header || 'Amount',
       render: (item: typeof topUpSchedules[0]) => (
-        <span className="font-semibold text-success">${formatCurrency(Number(item.amount), 0)}</span>
+        <span className="font-semibold text-success">${formatCurrency(Number(item.amount))}</span>
       )
     },
     { 
@@ -192,7 +192,7 @@ export default function AdminDashboard() {
       key: 'amount', 
       header: individualColumns.find(c => c.key === 'amount')?.header || 'Amount',
       render: (item: typeof topUpSchedules[0]) => (
-        <span className="font-semibold text-success">${formatCurrency(Number(item.amount), 0)}</span>
+        <span className="font-semibold text-success">${formatCurrency(Number(item.amount))}</span>
       )
     },
     { 
@@ -446,7 +446,7 @@ export default function AdminDashboard() {
                   <div>
                     <p className="text-xs text-muted-foreground mb-1">Amount per Account</p>
                     <p className="font-semibold text-success text-lg">
-                      S${formatCurrency(Number(selectedBatchDetail.amount), 0)}
+                      S${formatCurrency(Number(selectedBatchDetail.amount))}
                     </p>
                   </div>
                   <div>
@@ -480,10 +480,10 @@ export default function AdminDashboard() {
                 <div className="p-4 bg-primary/5 rounded-lg border border-primary/20">
                   <p className="text-xs text-muted-foreground mb-1">Total Disbursement</p>
                   <p className="text-2xl font-bold text-primary">
-                    S${formatCurrency(Number(selectedBatchDetail.amount) * (selectedBatchDetail.eligible_count || 0), 0)}
+                    S${formatCurrency(Number(selectedBatchDetail.amount) * (selectedBatchDetail.eligible_count || 0))}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {selectedBatchDetail.eligible_count || 0} accounts × S${formatCurrency(Number(selectedBatchDetail.amount), 0)}
+                    {selectedBatchDetail.eligible_count || 0} accounts × S${formatCurrency(Number(selectedBatchDetail.amount))}
                   </p>
                 </div>
 
