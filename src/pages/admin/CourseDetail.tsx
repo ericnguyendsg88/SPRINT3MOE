@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Pencil, Users, Calendar, DollarSign, MapPin, GraduationCap, Save, X, UserPlus, Trash2, Search, UserMinus, Lock, Building, CreditCard, RefreshCw, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Pencil, Users, Calendar, DollarSign, MapPin, GraduationCap, Save, X, UserPlus, Trash2, Search, UserMinus, Lock, Building, CreditCard, RefreshCw, CheckCircle, Ban, Check } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -83,7 +83,7 @@ export default function CourseDetail() {
   const [isConfirmingAdd, setIsConfirmingAdd] = useState(false);
   const [isRemoveMode, setIsRemoveMode] = useState(false);
   const [enrolledSearchQuery, setEnrolledSearchQuery] = useState('');
-  const [studentToRemove, setStudentToRemove] = useState<{ id: string; name: string } | null>(null);
+  const [studentToRemove, setStudentToRemove] = useState<{ id: string; name: string; accountId?: string } | null>(null);
   const [selectedEnrollmentIds, setSelectedEnrollmentIds] = useState<string[]>([]);
 
   const { data: course, isLoading } = useCourse(courseId || '');
@@ -198,10 +198,13 @@ export default function CourseDetail() {
 
   const courseFieldsConfig = getFieldConfig('course-details', defaultCourseFields) as FieldDefinition[];
 
-  const handleDeleteCourse = async () => {
+  const handleToggleCourseStatus = async () => {
     if (!course) return;
-    await deleteCourseMutation.mutateAsync(course.id);
-    navigate('/admin/courses');
+    const newStatus = course.status === 'active' ? 'inactive' : 'active';
+    await updateCourseMutation.mutateAsync({
+      id: course.id,
+      status: newStatus,
+    });
   };
 
   // Edit form state
@@ -362,14 +365,18 @@ export default function CourseDetail() {
     );
   });
 
-  const handleRemoveStudent = async (enrollmentId: string) => {
-    await deleteEnrollmentMutation.mutateAsync(enrollmentId);
+  const handleRemoveStudent = async (enrollmentId: string, accountId: string) => {
+    await deleteEnrollmentMutation.mutateAsync({ id: enrollmentId, accountId });
     setStudentToRemove(null);
   };
 
   const handleBulkRemoveStudents = async () => {
     for (const enrollmentId of selectedEnrollmentIds) {
-      await deleteEnrollmentMutation.mutateAsync(enrollmentId);
+      // Find the accountId for this enrollment
+      const enrolledStudent = enrolledStudents.find(s => s.id === enrollmentId);
+      if (enrolledStudent) {
+        await deleteEnrollmentMutation.mutateAsync({ id: enrollmentId, accountId: enrolledStudent.accountId });
+      }
     }
     setSelectedEnrollmentIds([]);
     setStudentToRemove(null);
@@ -507,26 +514,50 @@ export default function CourseDetail() {
               <div className="flex items-center gap-2">
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button variant="destructive" size="sm">
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete Course
+                    <Button 
+                      variant={course.status === 'active' ? 'outline' : 'default'}
+                      size="sm"
+                      className={course.status === 'active' ? 'text-warning border-warning/30 hover:bg-warning/10' : 'bg-green-600 hover:bg-green-700 text-white'}
+                    >
+                      {course.status === 'active' ? (
+                        <>
+                          <Ban className="h-4 w-4 mr-2" />
+                          Set as Inactive
+                        </>
+                      ) : (
+                        <>
+                          <Check className="h-4 w-4 mr-2" />
+                          Set as Active
+                        </>
+                      )}
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>Delete Course</AlertDialogTitle>
+                      <AlertDialogTitle>
+                        {course.status === 'active' ? 'Set Course as Inactive' : 'Set Course as Active'}
+                      </AlertDialogTitle>
                       <AlertDialogDescription>
-                        Are you sure you want to delete "{course.name}"? This action cannot be undone. 
-                        All enrollments and payment records associated with this course will also be affected.
+                        {course.status === 'active' ? (
+                          <>
+                            Are you sure you want to set "{course.name}" as inactive?
+                            This will prevent new student enrollments, but existing enrollments will remain active.
+                          </>
+                        ) : (
+                          <>
+                            Are you sure you want to set "{course.name}" as active?
+                            This will allow new student enrollments again.
+                          </>
+                        )}
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancel</AlertDialogCancel>
                       <AlertDialogAction
-                        onClick={handleDeleteCourse}
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        onClick={handleToggleCourseStatus}
+                        className={course.status === 'active' ? 'bg-warning text-white hover:bg-warning/90' : 'bg-green-600 text-white hover:bg-green-700'}
                       >
-                        {deleteCourseMutation.isPending ? 'Deleting...' : 'Delete'}
+                        {updateCourseMutation.isPending ? 'Updating...' : (course.status === 'active' ? 'Set as Inactive' : 'Set as Active')}
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
@@ -1084,8 +1115,8 @@ export default function CourseDetail() {
                     onClick={() => {
                       if (studentToRemove?.id === 'bulk') {
                         handleBulkRemoveStudents();
-                      } else if (studentToRemove) {
-                        handleRemoveStudent(studentToRemove.id);
+                      } else if (studentToRemove && studentToRemove.accountId) {
+                        handleRemoveStudent(studentToRemove.id, studentToRemove.accountId);
                       }
                     }}
                     className="bg-destructive text-destructive-foreground hover:bg-destructive/90"

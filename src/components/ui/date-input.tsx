@@ -197,7 +197,7 @@ export function DateInput({
           {selectedDate ? formatDisplayDate(selectedDate) : <span>{placeholder}</span>}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
+      <PopoverContent className="w-auto p-0 z-[100]" align="start">
         <div className="p-4 space-y-4">
           {/* Month and Year selectors - Moved to top for better visibility */}
           <div className="flex gap-2">

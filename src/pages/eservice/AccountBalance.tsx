@@ -221,34 +221,20 @@ export default function AccountBalance() {
       key: 'description', 
       header: transactionColumnsConfig.find(c => c.key === 'description')?.header || 'Description',
       render: (item: Transaction & { balanceAfter: number }) => {
-        // Parse description to format appropriately
         let displayText = item.description || '—';
-        let topUpName = '';
         
         if (item.type === 'course_fee') {
-          // For course payments: "Course Payment [Course Name] - [Billing Cycle]"
-          // Try to extract course name from description
-          const match = item.description?.match(/Course fee payment: (.+)/) || 
-                       item.description?.match(/(.+)/);
+          // For course payments: extract course name from description if formatted
+          const match = item.description?.match(/Course fee payment: (.+)/);
           if (match) {
             displayText = `Course Payment ${match[1]}`;
+          } else if (item.description) {
+            displayText = item.description;
           } else {
             displayText = 'Course Payment';
           }
-        } else if (item.type === 'top_up') {
-          // For top-ups: extract the name after the prefix
-          if (item.description?.toLowerCase().includes('batch top-up')) {
-            // Extract name after "Batch Top-up - "
-            topUpName = item.description.replace(/^Batch Top-up - /i, '').trim();
-            displayText = topUpName || 'Batch Top-Up';
-          } else if (item.description?.toLowerCase().includes('individual top-up')) {
-            // Extract name after "Individual Top-up - "
-            topUpName = item.description.replace(/^Individual Top-up - /i, '').trim();
-            displayText = topUpName || 'Individual Top-Up';
-          } else {
-            displayText = item.description || 'Top-Up';
-          }
         }
+        // For top-ups: just show the description as-is
         
         return (
           <div className="min-w-[200px]">
@@ -614,24 +600,7 @@ export default function AccountBalance() {
               Detailed information about this transaction
             </DialogDescription>
           </DialogHeader>
-          {selectedTransaction && (() => {
-            // Extract top-up information from description
-            let topUpType = '';
-            let topUpName = '';
-            
-            if (selectedTransaction.type === 'top_up' && selectedTransaction.description) {
-              if (selectedTransaction.description.toLowerCase().includes('batch top-up')) {
-                topUpType = 'Batch Top-Up';
-                topUpName = selectedTransaction.description.replace(/^Batch Top-up - /i, '').trim();
-              } else if (selectedTransaction.description.toLowerCase().includes('individual top-up')) {
-                topUpType = 'Individual Top-Up';
-                topUpName = selectedTransaction.description.replace(/^Individual Top-up - /i, '').trim();
-              } else {
-                topUpName = selectedTransaction.description;
-              }
-            }
-            
-            return (
+          {selectedTransaction && (
               <div className="space-y-5 py-4">
                 {/* Amount - Large Display at Top */}
                 <div className="text-center pb-4 border-b">
@@ -654,22 +623,12 @@ export default function AccountBalance() {
                     </span>
                   </div>
 
-                  {/* Top-Up Type (for top-ups only) */}
-                  {selectedTransaction.type === 'top_up' && topUpType && (
+                  {/* Description */}
+                  {selectedTransaction.description && (
                     <div>
-                      <p className="text-xs text-muted-foreground mb-1.5">Top-Up Type</p>
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-accent/10 text-accent border border-accent/20">
-                        {topUpType}
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Top-Up Name (for top-ups only) */}
-                  {selectedTransaction.type === 'top_up' && topUpName && (
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1.5">Top-Up Order Name</p>
+                      <p className="text-xs text-muted-foreground mb-1.5">Description</p>
                       <p className="font-medium text-foreground">
-                        {topUpName}
+                        {selectedTransaction.description}
                       </p>
                     </div>
                   )}
@@ -698,16 +657,6 @@ export default function AccountBalance() {
                     </div>
                   </div>
 
-                  {/* Full Description (for course payments) */}
-                  {selectedTransaction.type === 'course_fee' && selectedTransaction.description && (
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1.5">Description</p>
-                      <p className="font-medium text-foreground">
-                        {selectedTransaction.description}
-                      </p>
-                    </div>
-                  )}
-
                   {/* Status */}
                   <div>
                     <p className="text-xs text-muted-foreground mb-1.5">Status</p>
@@ -734,8 +683,7 @@ export default function AccountBalance() {
                   </Button>
                 </div>
               </div>
-            );
-          })()}
+            )}
         </DialogContent>
       </Dialog>
     </div>

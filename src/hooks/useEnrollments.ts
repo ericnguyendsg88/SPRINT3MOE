@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useSyncEducationLevel } from './useEducationLevelSync';
 
 export interface Enrollment {
   id: string;
@@ -64,6 +65,7 @@ export function useEnrollmentsByAccount(accountId: string) {
 
 export function useCreateEnrollment() {
   const queryClient = useQueryClient();
+  const { syncEducationLevel } = useSyncEducationLevel();
   
   return useMutation({
     mutationFn: async (data: Omit<Enrollment, 'id' | 'created_at' | 'updated_at'>) => {
@@ -76,8 +78,10 @@ export function useCreateEnrollment() {
       if (error) throw error;
       return result;
     },
-    onSuccess: () => {
+    onSuccess: async (data) => {
       queryClient.invalidateQueries({ queryKey: ['enrollments'] });
+      // Sync education level based on new enrollment
+      await syncEducationLevel(data.account_id);
       toast.success('Enrollment created successfully');
     },
     onError: (error: Error) => {
@@ -88,6 +92,7 @@ export function useCreateEnrollment() {
 
 export function useUpdateEnrollment() {
   const queryClient = useQueryClient();
+  const { syncEducationLevel } = useSyncEducationLevel();
   
   return useMutation({
     mutationFn: async ({ id, ...data }: Partial<Enrollment> & { id: string }) => {
@@ -101,8 +106,10 @@ export function useUpdateEnrollment() {
       if (error) throw error;
       return result;
     },
-    onSuccess: () => {
+    onSuccess: async (data) => {
       queryClient.invalidateQueries({ queryKey: ['enrollments'] });
+      // Sync education level when enrollment is updated (e.g., status change)
+      await syncEducationLevel(data.account_id);
       toast.success('Enrollment updated successfully');
     },
     onError: (error: Error) => {
@@ -113,18 +120,22 @@ export function useUpdateEnrollment() {
 
 export function useDeleteEnrollment() {
   const queryClient = useQueryClient();
+  const { syncEducationLevel } = useSyncEducationLevel();
   
   return useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async ({ id, accountId }: { id: string; accountId: string }) => {
       const { error } = await supabase
         .from('enrollments')
         .delete()
         .eq('id', id);
       
       if (error) throw error;
+      return accountId;
     },
-    onSuccess: () => {
+    onSuccess: async (accountId) => {
       queryClient.invalidateQueries({ queryKey: ['enrollments'] });
+      // Sync education level after enrollment is deleted
+      await syncEducationLevel(accountId);
       toast.success('Enrollment deleted successfully');
     },
     onError: (error: Error) => {

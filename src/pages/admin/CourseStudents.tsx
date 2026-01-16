@@ -54,7 +54,7 @@ export default function CourseStudents() {
   const [selectedStudentId, setSelectedStudentId] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [unenrollDialogOpen, setUnenrollDialogOpen] = useState(false);
-  const [enrollmentToUnenroll, setEnrollmentToUnenroll] = useState<{ id: string; studentName: string } | null>(null);
+  const [enrollmentToUnenroll, setEnrollmentToUnenroll] = useState<{ id: string; studentName: string; accountId: string } | null>(null);
 
   // Fetch data from database
   const { data: courses = [], isLoading: loadingCourses } = useCourses();
@@ -227,8 +227,8 @@ export default function CourseStudents() {
     }
   };
 
-  const handleUnenrollClick = (enrollmentId: string, studentName: string) => {
-    setEnrollmentToUnenroll({ id: enrollmentId, studentName });
+  const handleUnenrollClick = (enrollmentId: string, studentName: string, accountId: string) => {
+    setEnrollmentToUnenroll({ id: enrollmentId, studentName, accountId });
     setUnenrollDialogOpen(true);
   };
 
@@ -236,7 +236,10 @@ export default function CourseStudents() {
     if (!enrollmentToUnenroll) return;
     
     try {
-      await deleteEnrollmentMutation.mutateAsync(enrollmentToUnenroll.id);
+      await deleteEnrollmentMutation.mutateAsync({ 
+        id: enrollmentToUnenroll.id, 
+        accountId: enrollmentToUnenroll.accountId 
+      });
       setUnenrollDialogOpen(false);
       setEnrollmentToUnenroll(null);
     } catch (error) {
@@ -438,7 +441,7 @@ export default function CourseStudents() {
                       variant="ghost"
                       size="sm"
                       className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                      onClick={() => handleUnenrollClick(item.id, item.student?.name || 'Unknown')}
+                      onClick={() => handleUnenrollClick(item.id, item.student?.name || 'Unknown', item.enrollment.account_id)}
                     >
                       <UserMinus className="h-4 w-4 mr-1" />
                       Remove

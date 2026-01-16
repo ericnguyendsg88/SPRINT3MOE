@@ -45,16 +45,21 @@ export default function TopUpManagement() {
   const [isTopUpDialogOpen, setIsTopUpDialogOpen] = useState(false);
   const [topUpMode, setTopUpMode] = useState<'individual' | 'batch'>('individual');
   const [individualStep, setIndividualStep] = useState<1 | 2 | 3>(1); // 1: Select Account, 2: Details, 3: Preview
-  const [selectedAccount, setSelectedAccount] = useState('');
+  const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]); // Changed to array for multiple selection
   const [topUpAmount, setTopUpAmount] = useState('');
   const [topUpDescription, setTopUpDescription] = useState('');
+  const [topUpInternalRemark, setTopUpInternalRemark] = useState(''); // Internal remark for individual
   const [batchAmount, setBatchAmount] = useState('');
   const [batchRuleName, setBatchRuleName] = useState('');
   const [batchDescription, setBatchDescription] = useState('');
+  const [batchInternalRemark, setBatchInternalRemark] = useState(''); // Internal remark for batch
   const [scheduleDate, setScheduleDate] = useState('');
   const [scheduleTime, setScheduleTime] = useState('09:00');
   const [executeNow, setExecuteNow] = useState(true);
   const [accountSearch, setAccountSearch] = useState('');
+  
+  // Cutoff timestamp for "New" badge - set to deployment time (January 16, 2026)
+  const NEW_BADGE_CUTOFF = new Date('2026-01-16T00:00:00').getTime();
   
   // Batch targeting options
   const [batchTargeting, setBatchTargeting] = useState<'everyone' | 'customized'>('everyone');
@@ -63,7 +68,6 @@ export default function TopUpManagement() {
   const [minBalance, setMinBalance] = useState('');
   const [maxBalance, setMaxBalance] = useState('');
   const [selectedEducationStatus, setSelectedEducationStatus] = useState<string[]>([]);
-  const [selectedResidentialStatus, setSelectedResidentialStatus] = useState<string[]>([]);
   const [schoolingStatus, setSchoolingStatus] = useState<'all' | 'in_school' | 'not_in_school'>('all');
   
   // Preview and matching accounts state
@@ -289,13 +293,6 @@ export default function TopUpManagement() {
       );
     }
 
-    // Residential status filter (multiple selections)
-    if (selectedResidentialStatus.length > 0) {
-      targeted = targeted.filter(account => 
-        selectedResidentialStatus.includes(account.residential_status)
-      );
-    }
-
     // Schooling status filter
     if (schoolingStatus !== 'all') {
       targeted = targeted.filter(account => {
@@ -352,13 +349,6 @@ export default function TopUpManagement() {
         );
       }
       
-      // Residential status filter
-      if (criteria.residentialStatus && criteria.residentialStatus.length > 0) {
-        targeted = targeted.filter(account => 
-          criteria.residentialStatus.includes(account.residential_status)
-        );
-      }
-      
       // Schooling status filter
       if (criteria.schoolingStatus !== 'all') {
         targeted = targeted.filter(account => {
@@ -375,68 +365,77 @@ export default function TopUpManagement() {
   };
 
   const handleIndividualTopUp = async () => {
-    if (!selectedAccount || !topUpAmount) {
-      toast.error('Please fill in all fields');
+    if (selectedAccounts.length === 0 || !topUpAmount || !topUpDescription) {
+      toast.error('Please fill in all required fields');
       return;
     }
     if (!executeNow && (!scheduleDate || !scheduleTime)) {
       toast.error('Please select both schedule date and time');
       return;
     }
-    const account = accountHolders.find(a => a.id === selectedAccount);
-    if (!account) return;
 
     const amount = parseFloat(topUpAmount);
     const isImmediate = executeNow;
+    const totalAccounts = selectedAccounts.length;
 
     try {
-      // Create the schedule record
-      await createScheduleMutation.mutateAsync({
-        type: 'individual',
-        scheduled_date: isImmediate ? new Date().toISOString().split('T')[0] : scheduleDate,
-        scheduled_time: isImmediate ? new Date().toTimeString().slice(0, 5) : '09:00',
-        amount: amount,
-        account_id: account.id,
-        account_name: account.name,
-        status: isImmediate ? 'completed' : 'scheduled',
-        executed_date: isImmediate ? new Date().toISOString() : null,
-        rule_id: null,
-        rule_name: null,
-        eligible_count: null,
-        processed_count: null,
-        remarks: null,
-      });
+      // Generate reference ID for this batch of individual top-ups
+      const batchReferenceId = `TOPUP-${Date.now()}`;
+      
+      // Create schedule records and process for each selected account
+      for (const accountId of selectedAccounts) {
+        const account = accountHolders.find(a => a.id === accountId);
+        if (!account) continue;
 
-      // If immediate, also update the account balance and create transaction record
-      if (isImmediate) {
-        await updateAccountMutation.mutateAsync({
-          id: account.id,
-          balance: Number(account.balance) + amount,
-        });
-        
-        // Generate reference ID
-        const referenceId = `TOPUP-${Date.now()}`;
-        
-        // Create transaction record with description and reference ID
-        await createTransactionMutation.mutateAsync({
-          account_id: account.id,
-          type: 'top_up',
+        // Create the schedule record with internal remark
+        await createScheduleMutation.mutateAsync({
+          type: 'individual',
+          scheduled_date: isImmediate ? new Date().toISOString().split('T')[0] : scheduleDate,
+          scheduled_time: isImmediate ? new Date().toTimeString().slice(0, 5) : scheduleTime,
           amount: amount,
-          description: topUpDescription ? `Individual Top-up - ${topUpDescription}` : 'Individual Top-up',
-          reference: referenceId,
-          status: 'completed',
+          account_id: account.id,
+          account_name: account.name,
+          status: isImmediate ? 'completed' : 'scheduled',
+          executed_date: isImmediate ? new Date().toISOString() : null,
+          rule_id: null,
+          rule_name: null,
+          eligible_count: null,
+          processed_count: null,
+          remarks: topUpInternalRemark || null,
         });
-        
-        toast.success(`$${formatCurrency(amount)} credited to ${account.name}'s account`, {
-          description: `Reference ID: ${referenceId}`,
+
+        // If immediate, also update the account balance and create transaction record
+        if (isImmediate) {
+          await updateAccountMutation.mutateAsync({
+            id: account.id,
+            balance: Number(account.balance) + amount,
+          });
+          
+          // Create transaction record with description and reference ID
+          await createTransactionMutation.mutateAsync({
+            account_id: account.id,
+            type: 'top_up',
+            amount: amount,
+            description: topUpDescription,
+            reference: batchReferenceId,
+            status: 'completed',
+          });
+        }
+      }
+      
+      if (isImmediate) {
+        toast.success(`Top-up completed for ${totalAccounts} account${totalAccounts !== 1 ? 's' : ''}`, {
+          description: `Reference ID: ${batchReferenceId}`,
         });
       } else {
-        toast.success('Top-up scheduled successfully');
+        toast.success(`Top-up scheduled for ${totalAccounts} account${totalAccounts !== 1 ? 's' : ''}`);
       }
 
       setIsTopUpDialogOpen(false);
-      setSelectedAccount('');
+      setSelectedAccounts([]);
       setTopUpAmount('');
+      setTopUpDescription('');
+      setTopUpInternalRemark('');
       setScheduleDate('');
       setExecuteNow(true);
     } catch (error) {
@@ -477,6 +476,7 @@ export default function TopUpManagement() {
         account_name: null,
         remarks: JSON.stringify({
           description: batchDescription,
+          internalRemark: batchInternalRemark || null,
           referenceId: batchReferenceId,
           targetingType: batchTargeting,
           criteria: batchTargeting === 'everyone' ? {} : {
@@ -485,7 +485,6 @@ export default function TopUpManagement() {
             minBalance: minBalance ? parseFloat(minBalance) : null,
             maxBalance: maxBalance ? parseFloat(maxBalance) : null,
             educationStatus: selectedEducationStatus,
-            residentialStatus: selectedResidentialStatus,
             schoolingStatus: schoolingStatus,
           },
           eligibleAccountCount: targetedAccounts.length,
@@ -505,7 +504,7 @@ export default function TopUpManagement() {
             account_id: account.id,
             type: 'top_up',
             amount: amount,
-            description: `Batch Top-up - ${batchDescription}`,
+            description: batchDescription,
             reference: batchReferenceId,
             status: 'completed',
           });
@@ -523,6 +522,7 @@ export default function TopUpManagement() {
       setBatchAmount('');
       setBatchRuleName('');
       setBatchDescription('');
+      setBatchInternalRemark('');
       setScheduleDate('');
       setScheduleTime('09:00');
       setExecuteNow(true);
@@ -532,7 +532,6 @@ export default function TopUpManagement() {
       setMinBalance('');
       setMaxBalance('');
       setSelectedEducationStatus([]);
-      setSelectedResidentialStatus([]);
       setSchoolingStatus('all');
     } catch (error) {
       // Error handled by mutation
@@ -600,38 +599,52 @@ export default function TopUpManagement() {
       return true;
     });
 
-    // Apply sorting
-    if (sortColumn) {
-      filtered.sort((a, b) => {
-        let compareResult = 0;
-        
-        switch (sortColumn) {
-          case 'type':
-            compareResult = a.type.localeCompare(b.type);
-            break;
-          case 'name':
-            const nameA = a.type === 'individual' ? (a.account_name || '') : (a.rule_name || '');
-            const nameB = b.type === 'individual' ? (b.account_name || '') : (b.rule_name || '');
-            compareResult = nameA.localeCompare(nameB);
-            break;
-          case 'amount':
-            compareResult = Number(a.amount) - Number(b.amount);
-            break;
-          case 'status':
-            compareResult = a.status.localeCompare(b.status);
-            break;
-          case 'scheduledDate':
-            const dateA = new Date(a.scheduled_date);
-            const dateB = new Date(b.scheduled_date);
-            compareResult = dateA.getTime() - dateB.getTime();
-            break;
-        }
-        
-        return sortDirection === 'asc' ? compareResult : -compareResult;
-      });
-    }
+    // Separate recent and older items
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    
+    const recentItems = filtered.filter(item => new Date(item.created_at) >= sevenDaysAgo);
+    const olderItems = filtered.filter(item => new Date(item.created_at) < sevenDaysAgo);
 
-    return filtered;
+    // Apply sorting to each group
+    const sortGroup = (items: typeof filtered) => {
+      if (sortColumn) {
+        items.sort((a, b) => {
+          let compareResult = 0;
+          
+          switch (sortColumn) {
+            case 'type':
+              compareResult = a.type.localeCompare(b.type);
+              break;
+            case 'name':
+              const nameA = a.type === 'individual' ? (a.account_name || '') : (a.rule_name || '');
+              const nameB = b.type === 'individual' ? (b.account_name || '') : (b.rule_name || '');
+              compareResult = nameA.localeCompare(nameB);
+              break;
+            case 'amount':
+              compareResult = Number(a.amount) - Number(b.amount);
+              break;
+            case 'status':
+              compareResult = a.status.localeCompare(b.status);
+              break;
+            case 'scheduledDate':
+              const dateA = new Date(a.scheduled_date);
+              const dateB = new Date(b.scheduled_date);
+              compareResult = dateA.getTime() - dateB.getTime();
+              break;
+          }
+          
+          return sortDirection === 'asc' ? compareResult : -compareResult;
+        });
+      } else {
+        // Default sort by created_at descending when no column is selected
+        items.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      }
+      return items;
+    };
+
+    // Sort both groups and combine with recent items first
+    return [...sortGroup(recentItems), ...sortGroup(olderItems)];
   }, [topUpSchedules, filterPeriod, customStartDate, customEndDate, accountHolders, searchTerm, filterTypes, filterStatuses, sortColumn, sortDirection]);
 
   const handleSort = (column: 'type' | 'name' | 'amount' | 'status' | 'scheduledDate') => {
@@ -833,20 +846,30 @@ export default function TopUpManagement() {
           {getSortIcon('type')}
         </button>
       ),
-      render: (item: typeof topUpSchedules[0]) => (
-        <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
-          item.type === 'batch' 
-            ? 'bg-primary/10 text-primary border border-primary/20' 
-            : 'bg-accent/10 text-accent border border-accent/20'
-        }`}>
-          {item.type === 'batch' ? (
-            <Users className="h-3.5 w-3.5" />
-          ) : (
-            <User className="h-3.5 w-3.5" />
-          )}
-          {item.type === 'batch' ? 'Batch' : 'Individual'}
-        </div>
-      )
+      render: (item: typeof topUpSchedules[0]) => {
+        const isRecent = new Date(item.created_at).getTime() >= NEW_BADGE_CUTOFF;
+        return (
+          <div className="flex items-center gap-2">
+            <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
+              item.type === 'batch' 
+                ? 'bg-primary/10 text-primary border border-primary/20' 
+                : 'bg-accent/10 text-accent border border-accent/20'
+            }`}>
+              {item.type === 'batch' ? (
+                <Users className="h-3.5 w-3.5" />
+              ) : (
+                <User className="h-3.5 w-3.5" />
+              )}
+              {item.type === 'batch' ? 'Batch' : 'Individual'}
+            </div>
+            {isRecent && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800">
+                New
+              </span>
+            )}
+          </div>
+        );
+      }
     },
     { 
       key: 'name', 
@@ -916,6 +939,13 @@ export default function TopUpManagement() {
       )
     },
     { 
+      key: 'createdBy', 
+      header: 'Created By',
+      render: (item: typeof topUpSchedules[0]) => (
+        <span className="font-medium text-foreground">Admin 1</span>
+      )
+    },
+    { 
       key: 'scheduledDate', 
       header: (
         <button 
@@ -975,33 +1005,12 @@ export default function TopUpManagement() {
         </Button>
       </div>
 
-      {/* Recently Created Top-ups (Last 7 Days) */}
-      <Card>
-        <CardHeader className="pb-3">
-          <div>
-            <CardTitle>Recently Created</CardTitle>
-            <CardDescription>Top-up orders created in the last 7 days</CardDescription>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <DataTable 
-            data={recentlyCreatedTopUps} 
-            columns={recentlyCreatedColumns}
-            emptyMessage="No top-ups created in the last 7 days"
-            onRowClick={(schedule) => {
-              setSelectedScheduleDetail(schedule);
-              setShowDetailModal(true);
-            }}
-          />
-        </CardContent>
-      </Card>
-
       {/* All Top-up Tracking */}
       <Card>
         <CardHeader className="pb-3">
           <div>
-            <CardTitle>All Top-up</CardTitle>
-            <CardDescription>Track all top-up operations</CardDescription>
+            <CardTitle>Top-up Orders</CardTitle>
+            <CardDescription>Track all top-up operations • Recently created orders (last 7 days) are highlighted</CardDescription>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -1230,9 +1239,7 @@ export default function TopUpManagement() {
                   value={customStartDate}
                   onChange={(date) => {
                     setCustomStartDate(date);
-                    if (filterPeriod !== 'all') {
-                      setFilterPeriod('all');
-                    }
+                    setFilterPeriod('custom');
                   }}
                 />
               </div>
@@ -1242,9 +1249,7 @@ export default function TopUpManagement() {
                   value={customEndDate}
                   onChange={(date) => {
                     setCustomEndDate(date);
-                    if (filterPeriod !== 'all') {
-                      setFilterPeriod('all');
-                    }
+                    setFilterPeriod('custom');
                   }}
                 />
               </div>
@@ -1270,10 +1275,16 @@ export default function TopUpManagement() {
         if (!open) {
           // Reset form when dialog closes
           setIndividualStep(1);
-          setSelectedAccount('');
+          setSelectedAccounts([]);
           setTopUpAmount('');
           setTopUpDescription('');
+          setTopUpInternalRemark('');
           setAccountSearch('');
+          setBatchAmount('');
+          setBatchRuleName('');
+          setBatchDescription('');
+          setBatchInternalRemark('');
+          setBatchTargeting('everyone');
         }
       }}>
         <DialogContent className="w-[900px] max-w-[95vw] h-[90vh] max-h-[90vh] flex flex-col overflow-hidden">
@@ -1334,22 +1345,46 @@ export default function TopUpManagement() {
                 </div>
                 {filteredAccountHolders.length > 0 && (
                   <div className="grid gap-2">
-                    <Label>Select Account</Label>
+                    <div className="flex items-center justify-between">
+                      <Label>Select Accounts ({selectedAccounts.length} selected)</Label>
+                      {selectedAccounts.length > 0 && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => setSelectedAccounts([])}
+                          className="h-7 text-xs"
+                        >
+                          Clear All
+                        </Button>
+                      )}
+                    </div>
                     <div className="border rounded-lg p-2 space-y-2 max-h-[400px] overflow-y-auto">
                       {filteredAccountHolders.map(account => (
-                        <button
+                        <div
                           key={account.id}
-                          onClick={() => setSelectedAccount(account.id)}
-                          className={`w-full text-left p-3 rounded-md transition-colors ${
-                            selectedAccount === account.id
-                              ? 'bg-primary/10 border border-primary/20'
-                              : 'hover:bg-muted/50'
+                          className={`flex items-start gap-3 p-3 rounded-md border transition-colors ${
+                            selectedAccounts.includes(account.id)
+                              ? 'bg-primary/10 border-primary/20'
+                              : 'border-transparent hover:bg-muted/50'
                           }`}
                         >
-                          <div className="font-medium text-sm">{account.name}</div>
-                          <div className="text-xs text-muted-foreground">{account.nric}</div>
-                          <div className="text-xs text-muted-foreground">Balance: ${formatCurrency(Number(account.balance))}</div>
-                        </button>
+                          <Checkbox
+                            id={`account-${account.id}`}
+                            checked={selectedAccounts.includes(account.id)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedAccounts([...selectedAccounts, account.id]);
+                              } else {
+                                setSelectedAccounts(selectedAccounts.filter(id => id !== account.id));
+                              }
+                            }}
+                          />
+                          <label htmlFor={`account-${account.id}`} className="flex-1 cursor-pointer">
+                            <div className="font-medium text-sm">{account.name}</div>
+                            <div className="text-xs text-muted-foreground">{account.nric}</div>
+                            <div className="text-xs text-muted-foreground">Balance: ${formatCurrency(Number(account.balance))}</div>
+                          </label>
+                        </div>
                       ))}
                     </div>
                   </div>
@@ -1359,7 +1394,7 @@ export default function TopUpManagement() {
                 <Button variant="outline" onClick={() => {
                   setIsTopUpDialogOpen(false);
                   setIndividualStep(1);
-                  setSelectedAccount('');
+                  setSelectedAccounts([]);
                   setAccountSearch('');
                 }}>
                   Cancel
@@ -1367,9 +1402,9 @@ export default function TopUpManagement() {
                 <Button 
                   variant="accent" 
                   onClick={() => setIndividualStep(2)}
-                  disabled={!selectedAccount}
+                  disabled={selectedAccounts.length === 0}
                 >
-                  Continue
+                  Continue ({selectedAccounts.length} account{selectedAccounts.length !== 1 ? 's' : ''})
                 </Button>
               </div>
             </>
@@ -1379,22 +1414,37 @@ export default function TopUpManagement() {
           {individualStep === 2 && (
             <>
               <div className="grid gap-4 py-4 pr-2">
-                {(() => {
-                  const account = accountHolders.find(a => a.id === selectedAccount);
-                  return account && (
-                    <div className="bg-muted/50 p-3 rounded-lg mb-2">
-                      <div className="text-sm font-medium">{account.name}</div>
-                      <div className="text-xs text-muted-foreground">{account.nric}</div>
-                    </div>
-                  );
-                })()}
+                <div className="bg-muted/50 p-3 rounded-lg space-y-2">
+                  <div className="text-sm font-semibold">Selected Accounts ({selectedAccounts.length})</div>
+                  <div className="space-y-1 max-h-32 overflow-y-auto">
+                    {selectedAccounts.map(accountId => {
+                      const account = accountHolders.find(a => a.id === accountId);
+                      return account && (
+                        <div key={account.id} className="flex items-center justify-between text-xs">
+                          <span className="font-medium">{account.name}</span>
+                          <span className="text-muted-foreground">{account.nric}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
                 <div className="grid gap-2">
-                  <Label>Description <span className="text-destructive">*</span></Label>
+                  <Label>Description (visible to recipients) <span className="text-destructive">*</span></Label>
                   <Input
                     placeholder="e.g., Monthly allowance, Education support, etc."
                     value={topUpDescription}
                     onChange={(e) => setTopUpDescription(e.target.value)}
                   />
+                  <p className="text-xs text-muted-foreground">This will be shown to students in their transaction history</p>
+                </div>
+                <div className="grid gap-2">
+                  <Label>Internal Remark (optional)</Label>
+                  <Input
+                    placeholder="e.g., Government scheme batch Q1, Special case approval, etc."
+                    value={topUpInternalRemark}
+                    onChange={(e) => setTopUpInternalRemark(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">For internal tracking only - recipients will NOT see this</p>
                 </div>
                 <div className="grid gap-2">
                   <Label>Top-up Amount <span className="text-destructive">*</span></Label>
@@ -1459,43 +1509,58 @@ export default function TopUpManagement() {
           {individualStep === 3 && (
             <>
               <div className="grid gap-4 py-4 pr-2">
-                {(() => {
-                  const account = accountHolders.find(a => a.id === selectedAccount);
-                  const amount = parseFloat(topUpAmount);
-                  return account && (
-                    <div className="space-y-4">
-                      <div className="border rounded-lg p-4 space-y-3">
-                        <div className="flex justify-between items-start">
-                          <span className="text-sm font-medium text-muted-foreground">Account</span>
-                          <div className="text-right">
-                            <div className="text-sm font-medium">{account.name}</div>
-                            <div className="text-xs text-muted-foreground">{account.nric}</div>
-                          </div>
-                        </div>
-                        <div className="flex justify-between items-start">
-                          <span className="text-sm font-medium text-muted-foreground">Description</span>
-                          <span className="text-sm font-medium text-right">{topUpDescription}</span>
-                        </div>
-                        <div className="flex justify-between items-start">
-                          <span className="text-sm font-medium text-muted-foreground">Amount</span>
-                          <span className="text-sm font-bold text-success">+S${formatCurrency(amount)}</span>
-                        </div>
-                        <div className="flex justify-between items-start">
-                          <span className="text-sm font-medium text-muted-foreground">Execution</span>
-                          <span className="text-sm font-medium text-right">
-                            {executeNow ? 'Immediate' : `Scheduled: ${scheduleDate} at ${scheduleTime}`}
-                          </span>
-                        </div>
-                        <div className="border-t pt-3 flex justify-between items-start">
-                          <span className="text-sm font-medium text-muted-foreground">New Balance</span>
-                          <span className="text-base font-bold text-primary">
-                            S${formatCurrency(Number(account.balance) + amount)}
-                          </span>
-                        </div>
+                <div className="space-y-4">
+                  <div className="border rounded-lg p-4 space-y-3">
+                    <div className="flex justify-between items-start">
+                      <span className="text-sm font-medium text-muted-foreground">Recipients</span>
+                      <span className="text-sm font-bold text-primary">{selectedAccounts.length} account{selectedAccounts.length !== 1 ? 's' : ''}</span>
+                    </div>
+                    <div className="border-t pt-2">
+                      <div className="text-xs font-medium text-muted-foreground mb-2">Selected Accounts:</div>
+                      <div className="space-y-1 max-h-40 overflow-y-auto">
+                        {selectedAccounts.map(accountId => {
+                          const account = accountHolders.find(a => a.id === accountId);
+                          return account && (
+                            <div key={account.id} className="flex items-center justify-between text-xs p-2 bg-muted/50 rounded">
+                              <div>
+                                <div className="font-medium">{account.name}</div>
+                                <div className="text-muted-foreground">{account.nric}</div>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-muted-foreground">Current: S${formatCurrency(Number(account.balance))}</div>
+                                <div className="font-medium text-success">New: S${formatCurrency(Number(account.balance) + parseFloat(topUpAmount))}</div>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
-                  );
-                })()}
+                    <div className="flex justify-between items-start border-t pt-3">
+                      <span className="text-sm font-medium text-muted-foreground">Description</span>
+                      <span className="text-sm font-medium text-right max-w-[60%]">{topUpDescription}</span>
+                    </div>
+                    {topUpInternalRemark && (
+                      <div className="flex justify-between items-start">
+                        <span className="text-sm font-medium text-muted-foreground">Internal Remark</span>
+                        <span className="text-sm font-medium text-right max-w-[60%] text-orange-600">{topUpInternalRemark}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between items-start">
+                      <span className="text-sm font-medium text-muted-foreground">Amount per Account</span>
+                      <span className="text-sm font-bold text-success">+S${formatCurrency(parseFloat(topUpAmount))}</span>
+                    </div>
+                    <div className="flex justify-between items-start">
+                      <span className="text-sm font-medium text-muted-foreground">Total Disbursement</span>
+                      <span className="text-lg font-bold text-primary">S${formatCurrency(parseFloat(topUpAmount) * selectedAccounts.length)}</span>
+                    </div>
+                    <div className="flex justify-between items-start">
+                      <span className="text-sm font-medium text-muted-foreground">Execution</span>
+                      <span className="text-sm font-medium text-right">
+                        {executeNow ? 'Immediate' : `Scheduled: ${scheduleDate} at ${scheduleTime}`}
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
               <div className="flex justify-end gap-3">
                 <Button variant="outline" onClick={() => setIndividualStep(2)}>
@@ -1540,14 +1605,25 @@ export default function TopUpManagement() {
               </div>
             </div>
             <div className="grid gap-2">
-              <Label>Description <span className="text-destructive">*</span></Label>
+              <Label>Description (visible to recipients) <span className="text-destructive">*</span></Label>
               <Input
                 placeholder="e.g., Monthly government scheme, Education fund support, etc."
                 value={batchDescription}
                 onChange={(e) => setBatchDescription(e.target.value)}
               />
               <p className="text-xs text-muted-foreground">
-                This description will help account holders understand the source of the top-up
+                This will be shown to students in their transaction history
+              </p>
+            </div>
+            <div className="grid gap-2">
+              <Label>Internal Remark (optional)</Label>
+              <Input
+                placeholder="e.g., Approved by Minister, Special budget allocation, etc."
+                value={batchInternalRemark}
+                onChange={(e) => setBatchInternalRemark(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                For internal tracking only - recipients will NOT see this
               </p>
             </div>
 
@@ -1664,35 +1740,6 @@ export default function TopUpManagement() {
                     </div>
                   </div>
 
-                  {/* Residential Status */}
-                  <div className="grid gap-2">
-                    <Label className="text-sm">Residential Status</Label>
-                    <div className="space-y-2">
-                      {['sc', 'spr'].map(status => {
-                        const labels: Record<string, string> = {
-                          sc: 'Singapore Citizen',
-                          spr: 'Singapore Permanent Resident',
-                        };
-                        return (
-                          <div key={status} className="flex items-center gap-2">
-                            <Checkbox
-                              id={`res-${status}`}
-                              checked={selectedResidentialStatus.includes(status)}
-                              onCheckedChange={(checked) => {
-                                if (checked) {
-                                  setSelectedResidentialStatus([...selectedResidentialStatus, status]);
-                                } else {
-                                  setSelectedResidentialStatus(selectedResidentialStatus.filter(s => s !== status));
-                                }
-                              }}
-                            />
-                            <Label htmlFor={`res-${status}`} className="text-sm font-normal cursor-pointer">{labels[status]}</Label>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
                   {/* Schooling Status */}
                   <div className="grid gap-2">
                     <Label className="text-sm">Schooling Status</Label>
@@ -1778,66 +1825,6 @@ export default function TopUpManagement() {
           </div>
             </TabsContent>
           </Tabs>
-        </DialogContent>
-      </Dialog>
-
-      {/* Individual Top-up Preview Dialog */}
-      <Dialog open={showIndividualPreview} onOpenChange={setShowIndividualPreview}>
-        <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Confirm Individual Top-up</DialogTitle>
-            <DialogDescription>
-              Please review the details before submitting
-            </DialogDescription>
-          </DialogHeader>
-          {selectedAccount && accountHolders.find(a => a.id === selectedAccount) && (
-            <div className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
-                <div>
-                  <p className="text-xs text-muted-foreground">Account</p>
-                  <p className="font-medium">{accountHolders.find(a => a.id === selectedAccount)?.name}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">NRIC</p>
-                  <p className="font-medium">{accountHolders.find(a => a.id === selectedAccount)?.nric}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Current Balance</p>
-                  <p className="font-medium">S${formatCurrency(Number(accountHolders.find(a => a.id === selectedAccount)?.balance))}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Top-up Amount</p>
-                  <p className="font-semibold text-success">S${formatCurrency(parseFloat(topUpAmount) || 0)}</p>
-                </div>
-              </div>
-              <div className="p-4 bg-muted/50 rounded-lg">
-                <p className="text-xs text-muted-foreground">New Balance</p>
-                <p className="text-lg font-semibold text-success">
-                  S${formatCurrency(Number(accountHolders.find(a => a.id === selectedAccount)?.balance) + (parseFloat(topUpAmount) || 0))}
-                </p>
-              </div>
-              <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                <p className="text-xs font-medium text-blue-900 dark:text-blue-100">
-                  {executeNow ? 'This top-up will be executed immediately.' : 'This top-up will be scheduled for execution.'}
-                </p>
-              </div>
-            </div>
-          )}
-          <div className="flex justify-end gap-3">
-            <Button variant="outline" onClick={() => setShowIndividualPreview(false)}>
-              Back
-            </Button>
-            <Button 
-              variant="accent" 
-              onClick={async () => {
-                await handleIndividualTopUp();
-                setShowIndividualPreview(false);
-              }}
-              disabled={createScheduleMutation.isPending}
-            >
-              {createScheduleMutation.isPending ? 'Processing...' : 'Confirm & Submit'}
-            </Button>
-          </div>
         </DialogContent>
       </Dialog>
 
@@ -2048,9 +2035,20 @@ export default function TopUpManagement() {
                       <p className="text-xs text-muted-foreground">Rule Name</p>
                       <p className="font-medium">{selectedScheduleDetail.rule_name || 'Manual Batch Top-up'}</p>
                     </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Eligible Accounts</p>
-                      <p className="font-medium">{selectedScheduleDetail.eligible_count}</p>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Eligible Accounts</p>
+                        <p className="font-medium">{selectedScheduleDetail.eligible_count}</p>
+                      </div>
+                      {selectedScheduleDetail.eligible_count > 0 && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowBatchEligibleAccounts(true)}
+                        >
+                          View List
+                        </Button>
+                      )}
                     </div>
                   </>
                 )}
@@ -2321,7 +2319,7 @@ export default function TopUpManagement() {
                             </div>
                           </div>
                           
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-3 border-t">
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 pt-3 border-t">
                             <div>
                               <p className="text-xs text-muted-foreground">Age</p>
                               <p className="text-sm font-medium">{age} years</p>
@@ -2329,10 +2327,6 @@ export default function TopUpManagement() {
                             <div>
                               <p className="text-xs text-muted-foreground">Education Level</p>
                               <p className="text-sm font-medium capitalize">{account.education_level?.replace('_', ' ') || '—'}</p>
-                            </div>
-                            <div>
-                              <p className="text-xs text-muted-foreground">Residential Status</p>
-                              <p className="text-sm font-medium capitalize">{account.residential_status?.replace('_', ' ')}</p>
                             </div>
                             <div>
                               <p className="text-xs text-muted-foreground">Schooling Status</p>

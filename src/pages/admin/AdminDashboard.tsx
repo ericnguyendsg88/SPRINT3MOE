@@ -36,6 +36,7 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const [selectedBatchDetail, setSelectedBatchDetail] = useState<typeof topUpSchedules[0] | null>(null);
   const [showBatchDetailModal, setShowBatchDetailModal] = useState(false);
+  const [showBatchEligibleAccounts, setShowBatchEligibleAccounts] = useState(false);
   
   const { data: topUpSchedules = [], isLoading: loadingSchedules } = useTopUpSchedules();
   const { data: courseCharges = [], isLoading: loadingCharges } = useCourseCharges();
@@ -115,6 +116,78 @@ export default function AdminDashboard() {
     .filter(account => new Date(account.created_at) >= sevenDaysAgo)
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 5);
+
+  // Helper function to check if an account is currently enrolled
+  const isAccountInSchool = (accountId: string): boolean => {
+    return enrollments.some(e => e.account_id === accountId && e.status === 'active');
+  };
+
+  // Helper function to get eligible accounts for a batch based on targeting criteria
+  const getEligibleAccountsForBatch = (remarks: string | null): typeof accountHolders => {
+    if (!remarks) return [];
+    
+    try {
+      const data = JSON.parse(remarks);
+      const { targetingType, criteria } = data;
+      
+      if (targetingType === 'everyone') {
+        return accountHolders.filter(a => a.status === 'active');
+      }
+      
+      // Apply customized criteria
+      let targeted = accountHolders.filter(a => a.status === 'active');
+      
+      // Age range filter
+      if (criteria.minAge || criteria.maxAge) {
+        targeted = targeted.filter(account => {
+          const birthDate = new Date(account.date_of_birth);
+          const today = new Date();
+          const age = Math.floor((today.getTime() - birthDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+          
+          if (criteria.minAge && age < criteria.minAge) return false;
+          if (criteria.maxAge && age > criteria.maxAge) return false;
+          return true;
+        });
+      }
+      
+      // Balance range filter
+      if (criteria.minBalance || criteria.maxBalance) {
+        targeted = targeted.filter(account => {
+          const balance = Number(account.balance);
+          if (criteria.minBalance && balance < criteria.minBalance) return false;
+          if (criteria.maxBalance && balance > criteria.maxBalance) return false;
+          return true;
+        });
+      }
+      
+      // Education status filter
+      if (criteria.educationStatus && criteria.educationStatus.length > 0) {
+        targeted = targeted.filter(account => 
+          account.education_level && criteria.educationStatus.includes(account.education_level)
+        );
+      }
+      
+      // Schooling status filter
+      if (criteria.schoolingStatus !== 'all') {
+        targeted = targeted.filter(account => {
+          const inSchool = isAccountInSchool(account.id);
+          return criteria.schoolingStatus === 'in_school' ? inSchool : !inSchool;
+        });
+      }
+      
+      return targeted;
+    } catch (e) {
+      // If remarks is not in JSON format (old data), return empty
+      return [];
+    }
+  };
+
+  // Helper function to navigate to student detail page
+  const handleNavigateToStudent = (accountId: string) => {
+    setShowBatchEligibleAccounts(false);
+    setShowBatchDetailModal(false);
+    navigate(`/admin/students/${accountId}`);
+  };
 
   // Default column definitions
   const defaultBatchColumns: ColumnDefinition[] = [
@@ -449,9 +522,20 @@ export default function AdminDashboard() {
                       S${formatCurrency(Number(selectedBatchDetail.amount))}
                     </p>
                   </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">Targeted Accounts</p>
-                    <p className="font-medium text-foreground">{selectedBatchDetail.eligible_count || 0} accounts</p>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Targeted Accounts</p>
+                      <p className="font-medium text-foreground">{selectedBatchDetail.eligible_count || 0} accounts</p>
+                    </div>
+                    {selectedBatchDetail.eligible_count > 0 && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowBatchEligibleAccounts(true)}
+                      >
+                        View List
+                      </Button>
+                    )}
                   </div>
                 </div>
 
@@ -583,6 +667,118 @@ export default function AdminDashboard() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Batch Eligible Accounts Modal */}
+      <Dialog open={showBatchEligibleAccounts} onOpenChange={setShowBatchEligibleAccounts}>
+        <DialogContent className="sm:max-w-[800px] max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Eligible Accounts Details</DialogTitle>
+            <DialogDescription>
+              {selectedBatchDetail?.rule_name || 'Batch Top-up'} - Complete list of accounts matching the targeting criteria
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4">
+            {selectedBatchDetail && (() => {
+              const eligibleAccounts = getEligibleAccountsForBatch(selectedBatchDetail.remarks);
+              return eligibleAccounts.length > 0 ? (
+                <div className="space-y-3">
+                  {/* Summary Card */}
+                  <div className="grid grid-cols-3 gap-4 p-4 bg-muted/50 rounded-lg border">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Total Accounts</p>
+                      <p className="text-2xl font-bold text-primary">{eligibleAccounts.length}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Amount per Account</p>
+                      <p className="text-2xl font-bold text-success">S${formatCurrency(Number(selectedBatchDetail.amount))}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Total Disbursement</p>
+                      <p className="text-2xl font-bold text-success">S${formatCurrency(Number(selectedBatchDetail.amount) * eligibleAccounts.length)}</p>
+                    </div>
+                  </div>
+
+                  {/* Accounts List */}
+                  <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-2">
+                    {eligibleAccounts.map((account, index) => {
+                      const birthDate = new Date(account.date_of_birth);
+                      const today = new Date();
+                      const age = Math.floor((today.getTime() - birthDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+                      const inSchool = isAccountInSchool(account.id);
+                      
+                      return (
+                        <div key={account.id} className="p-4 border rounded-lg hover:bg-muted/30 transition-colors">
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-xs font-semibold text-muted-foreground bg-muted px-2 py-0.5 rounded">#{index + 1}</span>
+                                <button
+                                  className="font-semibold text-primary hover:underline text-left"
+                                  onClick={() => handleNavigateToStudent(account.id)}
+                                >
+                                  {account.name}
+                                </button>
+                              </div>
+                              <p className="text-sm text-muted-foreground">NRIC: {account.nric}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-xs text-muted-foreground">Current Balance</p>
+                              <p className="font-semibold text-lg">S${formatCurrency(Number(account.balance))}</p>
+                            </div>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 pt-3 border-t">
+                            <div>
+                              <p className="text-xs text-muted-foreground">Age</p>
+                              <p className="text-sm font-medium">{age} years</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground">Education Level</p>
+                              <p className="text-sm font-medium capitalize">{account.education_level?.replace('_', ' ') || '—'}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground">Schooling Status</p>
+                              <div className="flex items-center gap-1 mt-0.5">
+                                {inSchool ? (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-success/10 text-success border border-success/20">
+                                    In School
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground border">
+                                    Not in School
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="mt-3 pt-3 border-t bg-success/5 -mx-4 -mb-4 px-4 py-2 rounded-b-lg">
+                            <div className="flex items-center justify-between">
+                              <p className="text-xs text-muted-foreground">Top-up Amount:</p>
+                              <p className="text-sm font-semibold text-success">+S${formatCurrency(Number(selectedBatchDetail.amount))}</p>
+                              <p className="text-xs text-muted-foreground">New Balance:</p>
+                              <p className="text-sm font-semibold text-success">S${formatCurrency(Number(account.balance) + Number(selectedBatchDetail.amount))}</p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">No accounts match the targeting criteria</p>
+                </div>
+              );
+            })()}
+          </div>
+          <div className="flex justify-end gap-3 mt-4">
+            <Button variant="outline" onClick={() => setShowBatchEligibleAccounts(false)}>
+              Close
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
