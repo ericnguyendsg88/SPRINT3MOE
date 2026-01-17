@@ -1237,10 +1237,10 @@ export default function TopUpManagement() {
             
             {/* Date Range Filters and Sort By */}
             <div className="space-y-3">
-              <div className="flex items-center justify-between gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <label className="text-sm font-medium">Filter by Scheduled Date</label>
-                <div className="flex items-center gap-2">
-                  <label className="text-sm font-medium text-muted-foreground">Sort By:</label>
+                <div className="flex items-center gap-2 shrink-0">
+                  <label className="text-sm font-medium text-muted-foreground whitespace-nowrap">Sort By:</label>
                   <Select value={sortOption} onValueChange={(value: 'default' | 'recently-created') => setSortOption(value)}>
                     <SelectTrigger className="w-[200px] h-9">
                       <SelectValue />
