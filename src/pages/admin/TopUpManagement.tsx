@@ -2203,6 +2203,55 @@ export default function TopUpManagement() {
                 )}
               </div>
 
+              {/* Description and Internal Remarks */}
+              <div className="p-4 bg-muted/50 rounded-lg space-y-3">
+                {selectedScheduleDetail.type === 'batch' && (() => {
+                  try {
+                    const remarksData = JSON.parse(selectedScheduleDetail.remarks || '{}');
+                    const description = remarksData.description;
+                    const internalRemark = remarksData.internalRemark;
+                    
+                    return (
+                      <>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Description</p>
+                          <p className="font-medium">{description || '—'}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Internal Remarks</p>
+                          <p className="font-medium">{internalRemark || '—'}</p>
+                        </div>
+                      </>
+                    );
+                  } catch (e) {
+                    return (
+                      <>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Description</p>
+                          <p className="font-medium">—</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Internal Remarks</p>
+                          <p className="font-medium">—</p>
+                        </div>
+                      </>
+                    );
+                  }
+                })()}
+                {selectedScheduleDetail.type === 'individual' && (
+                  <>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Description</p>
+                      <p className="font-medium">—</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Internal Remarks</p>
+                      <p className="font-medium">{selectedScheduleDetail.remarks || '—'}</p>
+                    </div>
+                  </>
+                )}
+              </div>
+
               {/* Amount and Status */}
               <div className="grid grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
                 <div>
@@ -2262,38 +2311,6 @@ export default function TopUpManagement() {
                   </p>
                 </div>
               )}
-
-              {/* Description and Internal Remarks for Batch */}
-              {selectedScheduleDetail.type === 'batch' && selectedScheduleDetail.remarks && (() => {
-                try {
-                  const remarksData = JSON.parse(selectedScheduleDetail.remarks);
-                  const description = remarksData.description;
-                  const internalRemark = remarksData.internalRemark;
-                  
-                  if (description || internalRemark) {
-                    return (
-                      <div className="space-y-3 border-t pt-4">
-                        <h3 className="text-sm font-semibold text-foreground">Details</h3>
-                        {description && (
-                          <div className="p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
-                            <p className="text-xs font-medium text-green-900 dark:text-green-100 mb-2">Description (Shown to Recipients)</p>
-                            <p className="text-sm text-green-900 dark:text-green-100">{description}</p>
-                          </div>
-                        )}
-                        {internalRemark && (
-                          <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                            <p className="text-xs font-medium text-blue-900 dark:text-blue-100 mb-2">Internal Remarks (Admin Only)</p>
-                            <p className="text-sm text-blue-900 dark:text-blue-100">{internalRemark}</p>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  }
-                } catch (e) {
-                  // If parsing fails, ignore
-                }
-                return null;
-              })()}
 
               {/* Eligible Accounts List for Batch - Always show for batch orders */}
               {selectedScheduleDetail.type === 'batch' && (() => {
@@ -2370,25 +2387,6 @@ export default function TopUpManagement() {
                     ) : (
                       <div className="text-center py-8 border rounded-lg bg-muted/20">
                         <p className="text-muted-foreground text-sm">No eligible accounts found for this batch order</p>
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
-
-              {/* Description and Internal Remarks for Individual */}
-              {selectedScheduleDetail.type === 'individual' && (() => {
-                // Individual top-ups store internal remark directly in remarks field
-                // Description is stored in transaction records
-                const internalRemark = selectedScheduleDetail.remarks;
-                
-                return (
-                  <div className="space-y-3 border-t pt-4">
-                    <h3 className="text-sm font-semibold text-foreground">Details</h3>
-                    {internalRemark && (
-                      <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                        <p className="text-xs font-medium text-blue-900 dark:text-blue-100 mb-2">Internal Remarks (Admin Only)</p>
-                        <p className="text-sm text-blue-900 dark:text-blue-100">{internalRemark}</p>
                       </div>
                     )}
                   </div>
