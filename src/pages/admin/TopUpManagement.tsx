@@ -37,6 +37,13 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -96,9 +103,7 @@ export default function TopUpManagement() {
   const [filterStatuses, setFilterStatuses] = useState<string[]>(['scheduled', 'completed', 'cancelled']);
   const [sortColumn, setSortColumn] = useState<'type' | 'name' | 'amount' | 'status' | 'scheduledDate' | 'createdDate' | null>('scheduledDate'); // Default to scheduled date
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc'); // Default to descending (most recent first)
-  const [filterRecentlyCreated, setFilterRecentlyCreated] = useState(false);
-  const [createdDateFrom, setCreatedDateFrom] = useState('');
-  const [createdDateTo, setCreatedDateTo] = useState('');
+  const [sortOption, setSortOption] = useState<'default' | 'recently-created'>('default'); // Sort by option
 
   // Fetch data from database
   const { data: topUpSchedules = [], isLoading: loadingSchedules } = useTopUpSchedules();
@@ -434,10 +439,8 @@ export default function TopUpManagement() {
         toast.success(`Top-up scheduled for ${totalAccounts} account${totalAccounts !== 1 ? 's' : ''}`);
       }
 
-      // Switch to creation date sorting and enable recently created filter
-      setSortColumn('createdDate');
-      setSortDirection('desc');
-      setFilterRecentlyCreated(true);
+      // Switch to Recently Created sorting option
+      setSortOption('recently-created');
 
       setIsTopUpDialogOpen(false);
       setSelectedAccounts([]);
@@ -525,10 +528,8 @@ export default function TopUpManagement() {
           : `${targetedAccounts.length} account(s) targeted`,
       });
 
-      // Switch to creation date sorting and enable recently created filter
-      setSortColumn('createdDate');
-      setSortDirection('desc');
-      setFilterRecentlyCreated(true);
+      // Switch to Recently Created sorting option
+      setSortOption('recently-created');
 
       // Reset form
       setIsTopUpDialogOpen(false);
@@ -588,24 +589,6 @@ export default function TopUpManagement() {
       const scheduleDate = new Date(schedule.scheduled_date);
       if (scheduleDate < start || scheduleDate > end) return false;
       
-      // Filter by creation date range
-      if (createdDateFrom || createdDateTo) {
-        const createdDate = new Date(schedule.created_at);
-        if (createdDateFrom && createdDate < new Date(createdDateFrom)) return false;
-        if (createdDateTo) {
-          const endOfDay = new Date(createdDateTo);
-          endOfDay.setHours(23, 59, 59, 999);
-          if (createdDate > endOfDay) return false;
-        }
-      }
-      
-      // Filter by recently created (last 7 days)
-      if (filterRecentlyCreated) {
-        const sevenDaysAgo = new Date();
-        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-        if (new Date(schedule.created_at) < sevenDaysAgo) return false;
-      }
-      
       // Filter by type
       if (!filterTypes.includes(schedule.type)) return false;
       
@@ -630,10 +613,14 @@ export default function TopUpManagement() {
       return true;
     });
 
-    // Apply sorting
-    // If Recently Created filter is active and no manual column sort is set, force sort by created date descending
-    const effectiveSortColumn = filterRecentlyCreated && !sortColumn ? 'createdDate' : sortColumn;
-    const effectiveSortDirection = filterRecentlyCreated && !sortColumn ? 'desc' : sortDirection;
+    // Apply sorting based on sortOption
+    let effectiveSortColumn = sortColumn;
+    let effectiveSortDirection = sortDirection;
+    
+    if (sortOption === 'recently-created') {
+      effectiveSortColumn = 'createdDate';
+      effectiveSortDirection = 'desc';
+    }
     
     filtered.sort((a, b) => {
       let compareResult = 0;
@@ -674,7 +661,7 @@ export default function TopUpManagement() {
     });
 
     return filtered;
-  }, [topUpSchedules, filterPeriod, customStartDate, customEndDate, accountHolders, searchTerm, filterTypes, filterStatuses, sortColumn, sortDirection, filterRecentlyCreated, createdDateFrom, createdDateTo]);
+  }, [topUpSchedules, filterPeriod, customStartDate, customEndDate, accountHolders, searchTerm, filterTypes, filterStatuses, sortColumn, sortDirection, sortOption]);
 
   const handleSort = (column: 'type' | 'name' | 'amount' | 'status' | 'scheduledDate' | 'createdDate') => {
     if (sortColumn === column) {
@@ -1112,8 +1099,8 @@ export default function TopUpManagement() {
               </div>
             </div>
             
-            {/* Type, Status, and Creation Date Filters */}
-            <div className="grid grid-cols-3 gap-4">
+            {/* Type and Status Filters */}
+            <div className="grid grid-cols-2 gap-4">
               {/* Top Up Type Filter */}
               <div className="space-y-2">
                 <label className="text-sm font-medium">Top Up Type</label>
@@ -1246,82 +1233,20 @@ export default function TopUpManagement() {
                   </PopoverContent>
                 </Popover>
               </div>
-
-              {/* Creation Date Filter */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Creation Date</label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button 
-                      variant={filterRecentlyCreated || createdDateFrom || createdDateTo ? 'default' : 'outline'} 
-                      className="w-full justify-between"
-                    >
-                      <span className="text-sm">
-                        {filterRecentlyCreated ? 'Recently Created' : (createdDateFrom || createdDateTo) ? 'Custom Range' : 'All Time'}
-                      </span>
-                      <ChevronDown className="h-4 w-4 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[280px] p-3">
-                    <div className="space-y-3">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="recently-created"
-                          checked={filterRecentlyCreated}
-                          onCheckedChange={(checked) => {
-                            setFilterRecentlyCreated(!!checked);
-                            if (checked) {
-                              setCreatedDateFrom('');
-                              setCreatedDateTo('');
-                            }
-                          }}
-                        />
-                        <label
-                          htmlFor="recently-created"
-                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                        >
-                          Recently Created (Last 7 days)
-                        </label>
-                      </div>
-                      <div className="border-t pt-3">
-                        <Label className="text-xs text-muted-foreground mb-2 block">Custom Date Range</Label>
-                        <div className="space-y-2">
-                          <DateInput
-                            value={createdDateFrom}
-                            onChange={(date) => {
-                              setCreatedDateFrom(date);
-                              setFilterRecentlyCreated(false);
-                            }}
-                            placeholder="From date"
-                          />
-                          <DateInput
-                            value={createdDateTo}
-                            onChange={(date) => {
-                              setCreatedDateTo(date);
-                              setFilterRecentlyCreated(false);
-                            }}
-                            placeholder="To date"
-                            minDate={createdDateFrom ? new Date(createdDateFrom) : undefined}
-                          />
-                        </div>
-                        {(createdDateFrom || createdDateTo) && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setCreatedDateFrom('');
-                              setCreatedDateTo('');
-                            }}
-                            className="w-full mt-2 h-7 text-xs"
-                          >
-                            Clear Dates
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  </PopoverContent>
-                </Popover>
-              </div>
+            </div>
+            
+            {/* Sort By */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Sort By</label>
+              <Select value={sortOption} onValueChange={(value: 'default' | 'recently-created') => setSortOption(value)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="default">Scheduled Date (Default)</SelectItem>
+                  <SelectItem value="recently-created">Recently Created</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             
             {/* Date Range Filters */}
