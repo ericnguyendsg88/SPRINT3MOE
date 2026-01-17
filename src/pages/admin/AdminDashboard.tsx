@@ -497,6 +497,17 @@ export default function AdminDashboard() {
         onReset={resetLayout}
       />
 
+      {/* Greeting */}
+      <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-xl p-6 border border-primary/20">
+        <h2 className="text-2xl font-semibold text-foreground mb-1">Hi Admin!</h2>
+        <p className="text-muted-foreground">{new Date().toLocaleDateString('en-US', { 
+          weekday: 'long', 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        })}</p>
+      </div>
+
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
