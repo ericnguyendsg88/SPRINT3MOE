@@ -20,7 +20,12 @@ export function ProvidersProvider({ children }: { children: ReactNode }) {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       try {
-        return JSON.parse(stored);
+        const parsed = JSON.parse(stored);
+        // Migrate old data: ensure educationLevels array exists
+        return parsed.map((p: any) => ({
+          ...p,
+          educationLevels: p.educationLevels || ['tertiary'],
+        }));
       } catch {
         return INITIAL_COURSE_PROVIDERS;
       }
