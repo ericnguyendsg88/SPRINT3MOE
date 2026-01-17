@@ -22,6 +22,7 @@ export interface EnrollmentWithCourse extends Enrollment {
     billing_cycle: string;
     course_run_start: string | null;
     course_run_end: string | null;
+    education_level: string | null;
   };
 }
 
@@ -33,7 +34,7 @@ export function useEnrollments() {
         .from('enrollments')
         .select(`
           *,
-          courses (id, name, provider, fee, billing_cycle, course_run_start, course_run_end)
+          courses (id, name, provider, fee, billing_cycle, course_run_start, course_run_end, education_level)
         `)
         .order('enrollment_date', { ascending: false });
       
@@ -51,7 +52,7 @@ export function useEnrollmentsByAccount(accountId: string) {
         .from('enrollments')
         .select(`
           *,
-          courses (id, name, provider, fee, billing_cycle, course_run_start, course_run_end)
+          courses (id, name, provider, fee, billing_cycle, course_run_start, course_run_end, education_level)
         `)
         .eq('account_id', accountId)
         .order('enrollment_date', { ascending: false });

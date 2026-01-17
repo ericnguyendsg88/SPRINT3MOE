@@ -434,6 +434,12 @@ export default function CourseManagement() {
       return;
     }
 
+    // Validate education level is selected
+    if (!courseEducationLevel) {
+      toast.error('Please select an education level for the course');
+      return;
+    }
+
     // Validate that course start is today or in the future
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -470,6 +476,7 @@ export default function CourseManagement() {
         fee: feePerCycle,
         mode_of_training: (modeOfTraining || null) as any,
         status: courseStatus as any,
+        education_level: courseEducationLevel,
         description: null,
         main_location: null,
         register_by: null,

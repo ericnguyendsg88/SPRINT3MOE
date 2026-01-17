@@ -16,6 +16,7 @@ export interface Course {
   course_run_start: string | null;
   course_run_end: string | null;
   intake_size: number | null;
+  education_level: string | null;
   created_at: string;
   updated_at: string;
 }

@@ -15,7 +15,7 @@ const EDUCATION_LEVEL_PRIORITY = {
 /**
  * Determines the student's education level based on their active enrollments
  * Returns the highest education level among all active courses
- * Uses the course's education_level field directly
+ * Uses the course's education_level field directly from the database
  */
 export function determineEducationLevel(
   activeEnrollments: EnrollmentWithCourse[],
@@ -29,16 +29,14 @@ export function determineEducationLevel(
   let highestPriority = 0;
 
   for (const enrollment of activeEnrollments) {
-    // Find the provider for this course to get education level
-    const provider = providers.find(p => p.name === enrollment.courses?.provider);
-    if (!provider || !provider.educationLevels || provider.educationLevels.length === 0) continue;
-
-    // Use the first (or highest) education level from the provider
-    for (const level of provider.educationLevels) {
-      const priority = EDUCATION_LEVEL_PRIORITY[level];
+    // Use the education_level directly from the course
+    const courseLevel = enrollment.courses?.education_level as keyof typeof EDUCATION_LEVEL_PRIORITY | null;
+    
+    if (courseLevel && courseLevel in EDUCATION_LEVEL_PRIORITY) {
+      const priority = EDUCATION_LEVEL_PRIORITY[courseLevel];
       if (priority > highestPriority) {
         highestPriority = priority;
-        highestLevel = level;
+        highestLevel = courseLevel;
       }
     }
   }
@@ -61,4 +59,45 @@ export function formatEducationLevel(level: string | null): string {
   };
   
   return levelMap[level] || level;
+}
+
+/**
+ * Get the highest education level from an array of education levels
+ */
+export function getHighestEducationLevel(
+  levels: (string | null | undefined)[]
+): 'primary' | 'secondary' | 'post_secondary' | 'tertiary' | 'postgraduate' | null {
+  const validLevels = levels.filter((level): level is keyof typeof EDUCATION_LEVEL_PRIORITY => 
+    level !== null && level !== undefined && level in EDUCATION_LEVEL_PRIORITY
+  );
+
+  if (validLevels.length === 0) {
+    return null;
+  }
+
+  return validLevels.reduce((highest, current) => {
+    const currentPriority = EDUCATION_LEVEL_PRIORITY[current];
+    const highestPriority = EDUCATION_LEVEL_PRIORITY[highest];
+    return currentPriority > highestPriority ? current : highest;
+  });
+}
+
+/**
+ * Compare two education levels
+ * Returns: 1 if level1 > level2, -1 if level1 < level2, 0 if equal
+ */
+export function compareEducationLevels(
+  level1: string | null | undefined,
+  level2: string | null | undefined
+): number {
+  if (!level1 && !level2) return 0;
+  if (!level1) return -1;
+  if (!level2) return 1;
+
+  const priority1 = level1 in EDUCATION_LEVEL_PRIORITY ? EDUCATION_LEVEL_PRIORITY[level1 as keyof typeof EDUCATION_LEVEL_PRIORITY] : 0;
+  const priority2 = level2 in EDUCATION_LEVEL_PRIORITY ? EDUCATION_LEVEL_PRIORITY[level2 as keyof typeof EDUCATION_LEVEL_PRIORITY] : 0;
+
+  if (priority1 > priority2) return 1;  // level1 is higher
+  if (priority1 < priority2) return -1; // level1 is lower
+  return 0; // equal
 }
