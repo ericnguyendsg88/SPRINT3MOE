@@ -883,7 +883,13 @@ export default function CourseManagement() {
                     <DateInput 
                       id="courseStart" 
                       value={courseStart}
-                      onChange={setCourseStart}
+                      onChange={(value) => {
+                        setCourseStart(value);
+                        // Auto-populate course end with same date if not set or if current end is before new start
+                        if (value && (!courseEnd || new Date(courseEnd) < new Date(value))) {
+                          setCourseEnd(value);
+                        }
+                      }}
                       minDate={new Date()}
                     />
                   </div>
