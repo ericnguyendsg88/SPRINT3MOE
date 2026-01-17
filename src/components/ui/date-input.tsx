@@ -242,8 +242,16 @@ export function DateInput({
             selected={selectedDate}
             onSelect={handleSelect}
             disabled={(date) => {
-              if (minDate && date < minDate) return true;
-              if (maxDate && date > maxDate) return true;
+              // Normalize dates to start of day for comparison
+              const normalizedDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+              if (minDate) {
+                const normalizedMin = new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate());
+                if (normalizedDate < normalizedMin) return true;
+              }
+              if (maxDate) {
+                const normalizedMax = new Date(maxDate.getFullYear(), maxDate.getMonth(), maxDate.getDate());
+                if (normalizedDate > normalizedMax) return true;
+              }
               return false;
             }}
             initialFocus
