@@ -71,6 +71,7 @@ export default function CourseManagement() {
   const [totalFee, setTotalFee] = useState('');
   const [modeOfTraining, setModeOfTraining] = useState('');
   const [courseStatus, setCourseStatus] = useState('active');
+  const [courseEducationLevel, setCourseEducationLevel] = useState('');
 
   // Fetch data
   const { data: courses = [], isLoading: loadingCourses } = useCourses();
@@ -91,6 +92,14 @@ export default function CourseManagement() {
   }, [provider, providers]);
 
   // Auto-select education level if provider has only one
+  useMemo(() => {
+    if (selectedProviderEducationLevels.length === 1) {
+      setCourseEducationLevel(selectedProviderEducationLevels[0]);
+    } else if (selectedProviderEducationLevels.length === 0) {
+      setCourseEducationLevel('');
+    }
+  }, [selectedProviderEducationLevels]);
+
   // Auto-set payment type to one_time when no billing cycles available
   useMemo(() => {
     if (courseStart && courseEnd) {
@@ -302,6 +311,7 @@ export default function CourseManagement() {
   const resetForm = () => {
     setCourseName('');
     setProvider('');
+    setCourseEducationLevel('');
     setCourseStart('');
     setCourseEnd('');
     setPaymentType('');
@@ -863,7 +873,10 @@ export default function CourseManagement() {
 
                 <div className="grid gap-2">
                   <Label htmlFor="provider">Provider *</Label>
-                  <Select value={provider} onValueChange={setProvider}>
+                  <Select value={provider} onValueChange={(val) => {
+                    setProvider(val);
+                    setCourseEducationLevel('');
+                  }}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select provider" />
                     </SelectTrigger>
@@ -875,6 +888,51 @@ export default function CourseManagement() {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+
+                {/* Education Level - auto-filled based on provider */}
+                <div className="grid gap-2">
+                  <Label htmlFor="educationLevel">Education Level</Label>
+                  <TooltipProvider>
+                    <Tooltip open={!provider ? undefined : false}>
+                      <TooltipTrigger asChild>
+                        <div>
+                          {selectedProviderEducationLevels.length > 1 ? (
+                            <Select 
+                              value={courseEducationLevel} 
+                              onValueChange={setCourseEducationLevel}
+                              disabled={!provider}
+                            >
+                              <SelectTrigger className={!provider ? 'cursor-not-allowed opacity-60' : ''}>
+                                <SelectValue placeholder="Select education level" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {selectedProviderEducationLevels.map((level) => (
+                                  <SelectItem key={level} value={level}>
+                                    {educationLevelLabels[level]}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <div className={`flex items-center gap-2 p-2 bg-muted/50 rounded-md border h-10 ${
+                              !provider ? 'cursor-not-allowed opacity-60' : ''
+                            }`}>
+                              <GraduationCap className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-sm">
+                                {selectedProviderEducationLevels.length === 1 
+                                  ? educationLevelLabels[selectedProviderEducationLevels[0]]
+                                  : '—'}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Please select a provider first</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
