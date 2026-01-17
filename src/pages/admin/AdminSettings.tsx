@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Building, Plus, Pencil, Ban, Calendar, UserX, Check } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Building, Plus, Pencil, Ban, Calendar, UserX, Check, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -33,6 +33,11 @@ export default function AdminSettings() {
   const [billingDay, setBillingDay] = useState('5');
   const [billingDueDay, setBillingDueDay] = useState('30'); // Default to last day of month
   
+  // Provider search and pagination
+  const [providerSearchQuery, setProviderSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+  
   // Billing edit mode
   const [isBillingEditMode, setIsBillingEditMode] = useState(false);
   const [originalBillingDay, setOriginalBillingDay] = useState('5');
@@ -50,6 +55,25 @@ export default function AdminSettings() {
   // Confirmation dialog
   const [isSettingsSavedDialogOpen, setIsSettingsSavedDialogOpen] = useState(false);
   const [savedSettingType, setSavedSettingType] = useState<'billing' | 'closure'>('billing');
+
+  // Filter and paginate providers
+  const filteredProviders = useMemo(() => {
+    return providers.filter(provider =>
+      provider.name.toLowerCase().includes(providerSearchQuery.toLowerCase())
+    );
+  }, [providers, providerSearchQuery]);
+
+  const totalPages = Math.ceil(filteredProviders.length / itemsPerPage);
+  const paginatedProviders = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredProviders.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredProviders, currentPage]);
+
+  // Reset to page 1 when search changes
+  const handleSearchChange = (value: string) => {
+    setProviderSearchQuery(value);
+    setCurrentPage(1);
+  };
 
   const handleAddProvider = () => {
     if (!newProviderName.trim()) {
@@ -169,6 +193,17 @@ export default function AdminSettings() {
           </Button>
         </div>
 
+        {/* Search Bar */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search providers by name..."
+            value={providerSearchQuery}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+
         <div className="rounded-lg border border-border overflow-hidden">
           <Table>
             <TableHeader>
@@ -181,63 +216,108 @@ export default function AdminSettings() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {providers.length === 0 ? (
+              {paginatedProviders.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                    No course providers found. Add one to get started.
+                    {providerSearchQuery ? 'No providers found matching your search.' : 'No course providers found. Add one to get started.'}
                   </TableCell>
                 </TableRow>
               ) : (
-                providers.map((provider, index) => (
-                  <TableRow key={provider.id}>
-                    <TableCell className="text-muted-foreground">{index + 1}</TableCell>
-                    <TableCell className="font-medium text-foreground">{provider.name}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {provider.educationLevels.map((level) => {
-                          const label = EDUCATION_LEVEL_OPTIONS.find(opt => opt.value === level)?.label || level;
-                          return (
-                            <span key={level} className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
-                              {label}
-                            </span>
-                          );
-                        })}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        provider.isActive 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {provider.isActive ? 'Active' : 'Inactive'}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => openEditDialog(provider)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant={provider.isActive ? "outline" : "default"}
-                          size="sm"
-                          onClick={() => openToggleStatusDialog(provider)}
-                          className={provider.isActive ? 'text-destructive hover:bg-destructive/10 border-destructive/30' : 'bg-green-600 hover:bg-green-700 text-white'}
-                        >
-                          {provider.isActive ? 'Deactivate' : 'Activate'}
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
+                paginatedProviders.map((provider, index) => {
+                  const globalIndex = (currentPage - 1) * itemsPerPage + index + 1;
+                  return (
+                    <TableRow key={provider.id}>
+                      <TableCell className="text-muted-foreground">{globalIndex}</TableCell>
+                      <TableCell className="font-medium text-foreground">{provider.name}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {provider.educationLevels.map((level) => {
+                            const label = EDUCATION_LEVEL_OPTIONS.find(opt => opt.value === level)?.label || level;
+                            return (
+                              <span key={level} className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+                                {label}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          provider.isActive 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {provider.isActive ? 'Active' : 'Inactive'}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openEditDialog(provider)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant={provider.isActive ? "outline" : "default"}
+                            size="sm"
+                            onClick={() => openToggleStatusDialog(provider)}
+                            className={provider.isActive ? 'text-destructive hover:bg-destructive/10 border-destructive/30' : 'bg-green-600 hover:bg-green-700 text-white'}
+                          >
+                            {provider.isActive ? 'Deactivate' : 'Activate'}
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>
         </div>
+
+        {/* Pagination Controls */}
+        {filteredProviders.length > 0 && (
+          <div className="flex items-center justify-between px-2">
+            <p className="text-sm text-muted-foreground">
+              Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredProviders.length)} of {filteredProviders.length} provider{filteredProviders.length !== 1 ? 's' : ''}
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                Previous
+              </Button>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                  <Button
+                    key={page}
+                    variant={currentPage === page ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setCurrentPage(page)}
+                    className="w-8 h-8 p-0"
+                  >
+                    {page}
+                  </Button>
+                ))}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+              >
+                Next
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Billing Configuration */}
