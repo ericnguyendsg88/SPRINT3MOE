@@ -631,10 +631,14 @@ export default function TopUpManagement() {
     });
 
     // Apply sorting
+    // If Recently Created filter is active and no manual column sort is set, force sort by created date descending
+    const effectiveSortColumn = filterRecentlyCreated && !sortColumn ? 'createdDate' : sortColumn;
+    const effectiveSortDirection = filterRecentlyCreated && !sortColumn ? 'desc' : sortDirection;
+    
     filtered.sort((a, b) => {
       let compareResult = 0;
       
-      switch (sortColumn) {
+      switch (effectiveSortColumn) {
         case 'type':
           compareResult = a.type.localeCompare(b.type);
           break;
@@ -666,7 +670,7 @@ export default function TopUpManagement() {
           compareResult = defaultDateA.getTime() - defaultDateB.getTime();
       }
       
-      return sortDirection === 'asc' ? compareResult : -compareResult;
+      return effectiveSortDirection === 'asc' ? compareResult : -compareResult;
     });
 
     return filtered;
@@ -2259,6 +2263,38 @@ export default function TopUpManagement() {
                 </div>
               )}
 
+              {/* Description and Internal Remarks for Batch */}
+              {selectedScheduleDetail.type === 'batch' && selectedScheduleDetail.remarks && (() => {
+                try {
+                  const remarksData = JSON.parse(selectedScheduleDetail.remarks);
+                  const description = remarksData.description;
+                  const internalRemark = remarksData.internalRemark;
+                  
+                  if (description || internalRemark) {
+                    return (
+                      <div className="space-y-3 border-t pt-4">
+                        <h3 className="text-sm font-semibold text-foreground">Details</h3>
+                        {description && (
+                          <div className="p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
+                            <p className="text-xs font-medium text-green-900 dark:text-green-100 mb-2">Description (Shown to Recipients)</p>
+                            <p className="text-sm text-green-900 dark:text-green-100">{description}</p>
+                          </div>
+                        )}
+                        {internalRemark && (
+                          <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                            <p className="text-xs font-medium text-blue-900 dark:text-blue-100 mb-2">Internal Remarks (Admin Only)</p>
+                            <p className="text-sm text-blue-900 dark:text-blue-100">{internalRemark}</p>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
+                } catch (e) {
+                  // If parsing fails, ignore
+                }
+                return null;
+              })()}
+
               {/* Eligible Accounts List for Batch - Always show for batch orders */}
               {selectedScheduleDetail.type === 'batch' && (() => {
                 const eligibleAccounts = selectedScheduleDetail.remarks 
@@ -2340,13 +2376,24 @@ export default function TopUpManagement() {
                 );
               })()}
 
-              {/* Remarks for Individual */}
-              {selectedScheduleDetail.type === 'individual' && selectedScheduleDetail.remarks && (
-                <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <p className="text-xs font-medium text-blue-900 dark:text-blue-100 mb-2">Remarks</p>
-                  <p className="text-sm text-blue-900 dark:text-blue-100">{selectedScheduleDetail.remarks}</p>
-                </div>
-              )}
+              {/* Description and Internal Remarks for Individual */}
+              {selectedScheduleDetail.type === 'individual' && (() => {
+                // Individual top-ups store internal remark directly in remarks field
+                // Description is stored in transaction records
+                const internalRemark = selectedScheduleDetail.remarks;
+                
+                return (
+                  <div className="space-y-3 border-t pt-4">
+                    <h3 className="text-sm font-semibold text-foreground">Details</h3>
+                    {internalRemark && (
+                      <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                        <p className="text-xs font-medium text-blue-900 dark:text-blue-100 mb-2">Internal Remarks (Admin Only)</p>
+                        <p className="text-sm text-blue-900 dark:text-blue-100">{internalRemark}</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           )}
           <div className="flex justify-between items-center gap-3">
