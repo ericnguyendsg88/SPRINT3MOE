@@ -378,6 +378,15 @@ export default function CourseManagement() {
       toast.error('Please select course start and end dates');
       return false;
     }
+    // Validate that course start is today or in the future
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const startDate = new Date(courseStart);
+    startDate.setHours(0, 0, 0, 0);
+    if (startDate < today) {
+      toast.error('Course start date must be today or a future date');
+      return false;
+    }
     // Validate that course end is not before course start
     if (new Date(courseEnd) < new Date(courseStart)) {
       toast.error('Course end date cannot be before course start date');
@@ -412,6 +421,16 @@ export default function CourseManagement() {
     
     if (!courseName.trim() || !provider || !courseStart || !courseEnd || !effectivePaymentType || !totalFee) {
       toast.error('Please fill in all required fields');
+      return;
+    }
+
+    // Validate that course start is today or in the future
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const startDate = new Date(courseStart);
+    startDate.setHours(0, 0, 0, 0);
+    if (startDate < today) {
+      toast.error('Course start date must be today or a future date');
       return;
     }
 
@@ -865,6 +884,7 @@ export default function CourseManagement() {
                       id="courseStart" 
                       value={courseStart}
                       onChange={setCourseStart}
+                      minDate={new Date()}
                     />
                   </div>
                   <div className="grid gap-2">
@@ -873,6 +893,7 @@ export default function CourseManagement() {
                       id="courseEnd" 
                       value={courseEnd}
                       onChange={setCourseEnd}
+                      minDate={courseStart ? new Date(courseStart) : new Date()}
                     />
                   </div>
                 </div>

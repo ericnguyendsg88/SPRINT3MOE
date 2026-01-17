@@ -54,6 +54,7 @@ import { SectionAdder } from '@/components/editor/SectionAdder';
 import { CustomSectionRenderer } from '@/components/editor/CustomSectionRenderer';
 import { FieldEditor, FieldDefinition } from '@/components/editor/FieldEditor';
 import { formatCurrency } from '@/lib/utils';
+import { toast } from 'sonner';
 type BillingCycle = 'monthly' | 'quarterly' | 'biannually' | 'yearly';
 
 const billingCycleLabels: Record<BillingCycle, string> = {
@@ -246,6 +247,29 @@ export default function CourseDetail() {
 
   const handleSave = async () => {
     if (!course) return;
+    
+    // Validate course end date is not before course start
+    if (editCourseRunStart && editCourseRunEnd) {
+      if (new Date(editCourseRunEnd) < new Date(editCourseRunStart)) {
+        toast.error('Course end date cannot be before course start date');
+        return;
+      }
+    }
+
+    // Validate that course start is today or in the future (only if course hasn't started yet)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const originalStartDate = course.course_run_start ? new Date(course.course_run_start) : null;
+    const isCourseStarted = originalStartDate && originalStartDate <= today;
+    
+    if (!isCourseStarted && editCourseRunStart) {
+      const newStartDate = new Date(editCourseRunStart);
+      newStartDate.setHours(0, 0, 0, 0);
+      if (newStartDate < today) {
+        toast.error('Course start date must be today or a future date');
+        return;
+      }
+    }
     
     await updateCourseMutation.mutateAsync({
       id: course.id,
@@ -737,6 +761,7 @@ export default function CourseDetail() {
                             <DateInput
                               value={editCourseRunStart}
                               onChange={setEditCourseRunStart}
+                              minDate={new Date()}
                             />
                           )}
                         </div>
@@ -745,6 +770,7 @@ export default function CourseDetail() {
                           <DateInput
                             value={editCourseRunEnd}
                             onChange={setEditCourseRunEnd}
+                            minDate={editCourseRunStart ? new Date(editCourseRunStart) : new Date()}
                           />
                         </div>
                       </div>
