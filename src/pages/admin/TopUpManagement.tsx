@@ -1235,23 +1235,23 @@ export default function TopUpManagement() {
               </div>
             </div>
             
-            {/* Sort By */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Sort By</label>
-              <Select value={sortOption} onValueChange={(value: 'default' | 'recently-created') => setSortOption(value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="default">Scheduled Date (Default)</SelectItem>
-                  <SelectItem value="recently-created">Recently Created</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            {/* Date Range Filters */}
+            {/* Date Range Filters and Sort By */}
             <div className="space-y-3">
-              <label className="text-sm font-medium">Filter by Scheduled Date</label>
+              <div className="flex items-center justify-between gap-4">
+                <label className="text-sm font-medium">Filter by Scheduled Date</label>
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium text-muted-foreground">Sort By:</label>
+                  <Select value={sortOption} onValueChange={(value: 'default' | 'recently-created') => setSortOption(value)}>
+                    <SelectTrigger className="w-[200px] h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="default">Scheduled Date (Default)</SelectItem>
+                      <SelectItem value="recently-created">Recently Created</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
               <div className="flex flex-wrap gap-2">
                 <Button
                   size="sm"
