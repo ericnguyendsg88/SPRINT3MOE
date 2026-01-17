@@ -103,10 +103,6 @@ export default function AdminSettings() {
   };
 
   const handleSaveAccountClosureConfig = () => {
-    if (closureType === 'specific_date' && !closureSpecificDate) {
-      toast.error('Please select a specific date for account closure');
-      return;
-    }
     toast.success('Account closure configuration saved successfully');
   };
 
