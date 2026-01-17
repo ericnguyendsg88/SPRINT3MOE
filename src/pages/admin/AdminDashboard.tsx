@@ -498,9 +498,9 @@ export default function AdminDashboard() {
       />
 
       {/* Greeting */}
-      <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-xl p-6 border border-primary/20">
-        <h2 className="text-2xl font-semibold text-foreground mb-1">Hi Admin!</h2>
-        <p className="text-muted-foreground">{new Date().toLocaleDateString('en-US', { 
+      <div>
+        <h1 className="text-4xl font-bold text-foreground mb-2">Hi Admin!</h1>
+        <p className="text-lg text-muted-foreground">{new Date().toLocaleDateString('en-US', { 
           weekday: 'long', 
           year: 'numeric', 
           month: 'long', 
