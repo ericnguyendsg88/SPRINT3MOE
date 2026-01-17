@@ -122,7 +122,6 @@ export default function StudentDetail() {
   const [editRegisteredAddress, setEditRegisteredAddress] = useState('');
   const [editMailingAddress, setEditMailingAddress] = useState('');
   const [editInSchool, setEditInSchool] = useState<'in_school' | 'not_in_school'>('in_school');
-  const [editEducationLevel, setEditEducationLevel] = useState<string>('');
   const [editStatus, setEditStatus] = useState<'active' | 'inactive' | 'closed' | 'pending'>('active');
 
   const openEditDialog = () => {
@@ -134,7 +133,6 @@ export default function StudentDetail() {
       setEditRegisteredAddress(account.residential_address || '');
       setEditMailingAddress(account.mailing_address || '');
       setEditInSchool(account.in_school);
-      setEditEducationLevel(account.education_level || '');
       setEditStatus(account.status);
       setEditDialogOpen(true);
     }
@@ -152,7 +150,6 @@ export default function StudentDetail() {
       residential_address: editRegisteredAddress || null,
       mailing_address: editMailingAddress || null,
       in_school: editInSchool,
-      education_level: editEducationLevel ? editEducationLevel as any : null,
       status: editStatus,
     });
     
@@ -772,9 +769,12 @@ export default function StudentDetail() {
                   </div>
                   <div className="space-y-1">
                     <p className="text-xs text-muted-foreground uppercase tracking-wide">Education Level</p>
-                    <p className="font-medium text-foreground">
-                      {account.education_level ? educationLevelLabels[account.education_level] : '—'}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-foreground">
+                        {account.education_level ? educationLevelLabels[account.education_level] : '—'}
+                      </p>
+                      <span className="text-xs text-muted-foreground">(Auto-determined by courses)</span>
+                    </div>
                   </div>
                   <div className="space-y-1">
                     <p className="text-xs text-muted-foreground uppercase tracking-wide">Residential Status</p>
@@ -1178,18 +1178,12 @@ export default function StudentDetail() {
 
             <div className="grid gap-2">
               <Label>Education Level</Label>
-              <Select value={editEducationLevel} onValueChange={setEditEducationLevel}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select education level" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="primary">Primary</SelectItem>
-                  <SelectItem value="secondary">Secondary</SelectItem>
-                  <SelectItem value="post_secondary">Post-Secondary</SelectItem>
-                  <SelectItem value="tertiary">Tertiary</SelectItem>
-                  <SelectItem value="postgraduate">Postgraduate</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-md border">
+                <span className="text-sm text-muted-foreground">
+                  {account?.education_level ? educationLevelLabels[account.education_level] : 'Not Set'}
+                </span>
+                <span className="text-xs text-muted-foreground italic">(Auto-determined by enrolled courses)</span>
+              </div>
             </div>
 
 

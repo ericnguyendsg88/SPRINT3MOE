@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Plus, ArrowUpDown, ArrowUp, ArrowDown, X, Monitor, CreditCard, Calendar, GraduationCap, ChevronDown } from 'lucide-react';
+import { Search, Plus, Download, ArrowUpDown, ArrowUp, ArrowDown, ArrowLeft, ArrowUpRight, X, Building, Monitor, CreditCard, RefreshCw, CheckCircle, Calendar, CalendarDays, DollarSign, GraduationCap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -16,15 +16,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/utils';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   Table,
   TableBody,
@@ -47,9 +42,15 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { usePageBuilder, LayoutItem } from '@/components/editor/PageBuilder';
+import { EditModeToggle } from '@/components/editor/EditModeToggle';
+import { SortableContainer } from '@/components/editor/SortableContainer';
+import { ResizableSection } from '@/components/editor/ResizableSection';
+import { SectionAdder } from '@/components/editor/SectionAdder';
+import { CustomSectionRenderer } from '@/components/editor/CustomSectionRenderer';
 import { useProviders } from '@/contexts/ProvidersContext';
 
-const EDUCATION_LEVELS = ['primary', 'secondary', 'tertiary'] as const;
+const SECTION_IDS = ['header', 'filters', 'courses-table'];
 
 type SortField = 'name' | 'provider' | 'course_run_start' | 'course_run_end' | 'fee' | 'created_at';
 type SortDirection = 'asc' | 'desc';
@@ -74,7 +75,6 @@ export default function CourseManagement() {
   // Form state for adding course
   const [courseName, setCourseName] = useState('');
   const [provider, setProvider] = useState('');
-  const [educationLevel, setEducationLevel] = useState('');
   const [courseStart, setCourseStart] = useState('');
   const [courseEnd, setCourseEnd] = useState('');
   const [paymentType, setPaymentType] = useState('');
@@ -84,6 +84,24 @@ export default function CourseManagement() {
   const [feeEntryMode, setFeeEntryMode] = useState<'per_cycle' | 'total'>('per_cycle');
   const [modeOfTraining, setModeOfTraining] = useState('');
   const [courseStatus, setCourseStatus] = useState('active');
+  const [courseEducationLevel, setCourseEducationLevel] = useState('');
+
+  // Page layout for drag-and-drop
+  const {
+    isEditMode,
+    toggleEditMode,
+    layout,
+    updateLayout,
+    updateSectionSize,
+    addSection,
+    removeSection,
+    updateCustomSection,
+    resetLayout,
+    getOrderedItems,
+    getSectionSize,
+    isSaving,
+    handleAddSection,
+  } = usePageBuilder('course-management', SECTION_IDS);
 
   // Fetch data
   const { data: courses = [], isLoading: loadingCourses } = useCourses();
@@ -95,6 +113,31 @@ export default function CourseManagement() {
   const allProviders = useMemo(() => {
     return providers.map(p => p.name).sort();
   }, [providers]);
+
+  // Get education levels for selected provider
+  const selectedProviderEducationLevels = useMemo(() => {
+    if (!provider) return [];
+    const selectedProvider = providers.find(p => p.name === provider);
+    return selectedProvider?.educationLevels || [];
+  }, [provider, providers]);
+
+  // Auto-select education level if provider has only one
+  useMemo(() => {
+    if (selectedProviderEducationLevels.length === 1) {
+      setCourseEducationLevel(selectedProviderEducationLevels[0]);
+    } else if (selectedProviderEducationLevels.length === 0) {
+      setCourseEducationLevel('');
+    }
+  }, [selectedProviderEducationLevels]);
+
+  // Education level labels
+  const educationLevelLabels: Record<string, string> = {
+    primary: 'Primary',
+    secondary: 'Secondary',
+    post_secondary: 'Post-Secondary',
+    tertiary: 'Tertiary',
+    postgraduate: 'Postgraduate',
+  };
 
   // Helper function to get enrolled students count for a course
   const getEnrolledStudentsCount = (courseId: string) => {
@@ -282,6 +325,7 @@ export default function CourseManagement() {
   const resetForm = () => {
     setCourseName('');
     setProvider('');
+    setCourseEducationLevel('');
     setCourseStart('');
     setCourseEnd('');
     setPaymentType('');
@@ -397,6 +441,9 @@ export default function CourseManagement() {
       return;
     }
 
+    // Get the education level (either selected or auto-set from provider)
+    const educationLevel = courseEducationLevel || (selectedProviderEducationLevels.length === 1 ? selectedProviderEducationLevels[0] : null);
+
     try {
       const finalFee = feeEntryMode === 'per_cycle' ? feePerCycle : calculateFeePerCycle();
       
@@ -409,6 +456,7 @@ export default function CourseManagement() {
         fee: parseFloat(finalFee),
         mode_of_training: (modeOfTraining || null) as any,
         status: courseStatus as any,
+        education_level: educationLevel as any,
         description: null,
         main_location: null,
         register_by: null,
@@ -485,7 +533,10 @@ export default function CourseManagement() {
 
                       <div className="grid gap-2">
                         <Label htmlFor="provider">Provider *</Label>
-                        <Select value={provider} onValueChange={setProvider}>
+                        <Select value={provider} onValueChange={(val) => {
+                          setProvider(val);
+                          setCourseEducationLevel(''); // Reset when provider changes
+                        }}>
                           <SelectTrigger>
                             <SelectValue placeholder="Select provider" />
                           </SelectTrigger>
@@ -497,6 +548,51 @@ export default function CourseManagement() {
                             ))}
                           </SelectContent>
                         </Select>
+                      </div>
+
+                      {/* Education Level - auto-filled based on provider */}
+                      <div className="grid gap-2">
+                        <Label htmlFor="educationLevel">Education Level</Label>
+                        <TooltipProvider>
+                          <Tooltip open={!provider ? undefined : false}>
+                            <TooltipTrigger asChild>
+                              <div>
+                                {selectedProviderEducationLevels.length > 1 ? (
+                                  <Select 
+                                    value={courseEducationLevel} 
+                                    onValueChange={setCourseEducationLevel}
+                                    disabled={!provider}
+                                  >
+                                    <SelectTrigger className={!provider ? 'cursor-not-allowed opacity-60' : ''}>
+                                      <SelectValue placeholder="Select education level" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {selectedProviderEducationLevels.map((level) => (
+                                        <SelectItem key={level} value={level}>
+                                          {educationLevelLabels[level]}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                ) : (
+                                  <div className={`flex items-center gap-2 p-2 bg-muted/50 rounded-md border h-10 ${
+                                    !provider ? 'cursor-not-allowed opacity-60' : ''
+                                  }`}>
+                                    <GraduationCap className="h-4 w-4 text-muted-foreground" />
+                                    <span className="text-sm">
+                                      {selectedProviderEducationLevels.length === 1 
+                                        ? educationLevelLabels[selectedProviderEducationLevels[0]]
+                                        : '—'}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Please select a provider first</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </div>
 
                       <div className="grid gap-4 sm:grid-cols-2">
@@ -707,7 +803,7 @@ export default function CourseManagement() {
                         variant="accent" 
                         onClick={handleProceedToReview}
                       >
-                        Review Course
+                        Preview & Create
                         <ArrowUpRight className="h-4 w-4 ml-2" />
                       </Button>
                     </div>

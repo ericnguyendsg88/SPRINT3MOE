@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Users, User, Trash2, ChevronDown, X, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Plus, Search, Users, User, Trash2, ChevronDown, X, ArrowUpDown, ArrowUp, ArrowDown, CalendarClock, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DateInput } from '@/components/ui/date-input';
@@ -1065,7 +1065,32 @@ export default function TopUpManagement() {
       {/* All Top-up Tracking */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-lg">Top-up Tracking</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg">Top-up Tracking</CardTitle>
+            {(searchTerm !== '' || 
+              filterTypes.length !== 2 || 
+              filterStatuses.length !== 3 || 
+              filterPeriod !== 'all' || 
+              customStartDate !== '' || 
+              customEndDate !== '') && (
+              <Button 
+                variant="ghost" 
+                size="sm"
+                className="h-8 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+                onClick={() => {
+                  setSearchTerm('');
+                  setFilterTypes(['individual', 'batch']);
+                  setFilterStatuses(['scheduled', 'completed', 'cancelled']);
+                  setFilterPeriod('all');
+                  setCustomStartDate('');
+                  setCustomEndDate('');
+                }}
+              >
+                <X className="h-4 w-4 mr-1" />
+                Clear All Filters
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Simplified Filter Controls */}
@@ -1100,6 +1125,7 @@ export default function TopUpManagement() {
                 }}
               >
                 <SelectTrigger className="w-[130px] h-9">
+                  <Users className="h-4 w-4 mr-2 text-muted-foreground" />
                   <SelectValue placeholder="Type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1112,7 +1138,8 @@ export default function TopUpManagement() {
               {/* Status Filter - Multi-select */}
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className="h-9 w-[130px] justify-between">
+                  <Button variant="outline" className="h-9 w-[160px] justify-between">
+                    <CalendarClock className="h-4 w-4 mr-2 text-muted-foreground shrink-0" />
                     <span className="truncate">
                       {filterStatuses.length === 3 ? 'All Status' : filterStatuses.length === 0 ? 'Status' : `${filterStatuses.length} selected`}
                     </span>
@@ -1239,30 +1266,6 @@ export default function TopUpManagement() {
               
               {/* Custom Date Range - Compact */}
               <div className="flex items-center gap-1.5 ml-auto">
-                {/* Clear All Filters - Only show when filters are active */}
-                {(searchTerm !== '' || 
-                  filterTypes.length !== 2 || 
-                  filterStatuses.length !== 3 || 
-                  filterPeriod !== 'all' || 
-                  customStartDate !== '' || 
-                  customEndDate !== '') && (
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    className="h-7 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
-                    onClick={() => {
-                      setSearchTerm('');
-                      setFilterTypes(['individual', 'batch']);
-                      setFilterStatuses(['scheduled', 'completed', 'cancelled']);
-                      setFilterPeriod('all');
-                      setCustomStartDate('');
-                      setCustomEndDate('');
-                    }}
-                  >
-                    <X className="h-4 w-4 mr-1" />
-                    Clear All
-                  </Button>
-                )}
                 <DateInput
                   value={customStartDate}
                   onChange={(date) => {
@@ -1340,18 +1343,24 @@ export default function TopUpManagement() {
             
             {/* Individual Top-up Content */}
             <TabsContent value="individual" className="mt-0 flex-1 overflow-y-auto">
-          {/* Step Indicator */}
-          <div className="flex items-center justify-center gap-2 mb-6 px-2">
-            <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${individualStep >= 1 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
-              1
+          {/* Progress Bar */}
+          <div className="mb-6 px-2">
+            <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-primary transition-all duration-300 ease-in-out"
+                style={{ width: `${(individualStep / 3) * 100}%` }}
+              />
             </div>
-            <div className={`h-[2px] w-12 ${individualStep >= 2 ? 'bg-primary' : 'bg-muted'}`} />
-            <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${individualStep >= 2 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
-              2
-            </div>
-            <div className={`h-[2px] w-12 ${individualStep >= 3 ? 'bg-primary' : 'bg-muted'}`} />
-            <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${individualStep >= 3 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
-              3
+            <div className="flex justify-between mt-2">
+              <span className={`text-xs ${individualStep >= 1 ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
+                Select Account
+              </span>
+              <span className={`text-xs ${individualStep >= 2 ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
+                Details
+              </span>
+              <span className={`text-xs ${individualStep >= 3 ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
+                Preview
+              </span>
             </div>
           </div>
 
@@ -1608,6 +1617,24 @@ export default function TopUpManagement() {
             
             {/* Batch Top-up Content */}
             <TabsContent value="batch" className="mt-0 flex-1 overflow-y-auto">
+          {/* Progress Bar */}
+          <div className="mb-6 px-2">
+            <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-primary transition-all duration-300 ease-in-out"
+                style={{ width: showBatchPreview ? '100%' : '50%' }}
+              />
+            </div>
+            <div className="flex justify-between mt-2">
+              <span className={`text-xs ${!showBatchPreview ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
+                Setup
+              </span>
+              <span className={`text-xs ${showBatchPreview ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
+                Preview
+              </span>
+            </div>
+          </div>
+
           <div className="grid gap-4 py-4 pr-2">
             <div className="grid gap-2">
               <Label>Rule Name <span className="text-destructive">*</span></Label>

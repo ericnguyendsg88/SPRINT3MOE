@@ -31,10 +31,25 @@ export default function AdminSettings() {
   const [editingProvider, setEditingProvider] = useState<CourseProvider | null>(null);
   const [toggleStatusProvider, setToggleStatusProvider] = useState<CourseProvider | null>(null);
   const [billingDay, setBillingDay] = useState('5');
+  const [billingDueDay, setBillingDueDay] = useState('30'); // Default to last day of month
+  
+  // Billing edit mode
+  const [isBillingEditMode, setIsBillingEditMode] = useState(false);
+  const [originalBillingDay, setOriginalBillingDay] = useState('5');
+  const [originalBillingDueDay, setOriginalBillingDueDay] = useState('30');
   
   // Auto Account Closure Configuration
   const [closureMonth, setClosureMonth] = useState('12'); // December
   const [closureDay, setClosureDay] = useState('31');
+  
+  // Closure edit mode
+  const [isClosureEditMode, setIsClosureEditMode] = useState(false);
+  const [originalClosureMonth, setOriginalClosureMonth] = useState('12');
+  const [originalClosureDay, setOriginalClosureDay] = useState('31');
+  
+  // Confirmation dialog
+  const [isSettingsSavedDialogOpen, setIsSettingsSavedDialogOpen] = useState(false);
+  const [savedSettingType, setSavedSettingType] = useState<'billing' | 'closure'>('billing');
 
   const handleAddProvider = () => {
     if (!newProviderName.trim()) {
@@ -99,11 +114,31 @@ export default function AdminSettings() {
   };
 
   const handleSaveBillingDate = () => {
-    toast.success('Billing date configuration saved successfully');
+    setOriginalBillingDay(billingDay);
+    setOriginalBillingDueDay(billingDueDay);
+    setIsBillingEditMode(false);
+    setSavedSettingType('billing');
+    setIsSettingsSavedDialogOpen(true);
+  };
+
+  const handleCancelBillingEdit = () => {
+    setBillingDay(originalBillingDay);
+    setBillingDueDay(originalBillingDueDay);
+    setIsBillingEditMode(false);
   };
 
   const handleSaveAccountClosureConfig = () => {
-    toast.success('Account closure configuration saved successfully');
+    setOriginalClosureMonth(closureMonth);
+    setOriginalClosureDay(closureDay);
+    setIsClosureEditMode(false);
+    setSavedSettingType('closure');
+    setIsSettingsSavedDialogOpen(true);
+  };
+
+  const handleCancelClosureEdit = () => {
+    setClosureMonth(originalClosureMonth);
+    setClosureDay(originalClosureDay);
+    setIsClosureEditMode(false);
   };
 
   return (
@@ -207,59 +242,104 @@ export default function AdminSettings() {
 
       {/* Billing Configuration */}
       <div className="rounded-xl border border-border bg-card p-6 space-y-6">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-success/10">
-            <Calendar className="h-5 w-5 text-success" />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-success/10">
+              <Calendar className="h-5 w-5 text-success" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-foreground">Billing Configuration</h2>
+              <p className="text-sm text-muted-foreground">Set site-wide billing date and due date</p>
+            </div>
           </div>
-          <div>
-            <h2 className="font-semibold text-foreground">Billing Configuration</h2>
-            <p className="text-sm text-muted-foreground">Set site-wide billing date</p>
-          </div>
+          {!isBillingEditMode && (
+            <Button variant="outline" size="sm" onClick={() => setIsBillingEditMode(true)}>
+              <Pencil className="h-4 w-4 mr-2" />
+              Edit
+            </Button>
+          )}
         </div>
 
-        <div className="grid gap-4 max-w-md">
-          <div className="grid gap-2">
-            <Label htmlFor="billingDay">Billing Date (Day of Month)</Label>
-            <Select value={billingDay} onValueChange={setBillingDay}>
-              <SelectTrigger id="billingDay">
-                <SelectValue placeholder="Select day" />
-              </SelectTrigger>
-              <SelectContent>
-                {Array.from({ length: 10 }, (_, i) => i + 1).map(day => (
-                  <SelectItem key={day} value={day.toString()}>
-                    {day}{day === 1 ? 'st' : day === 2 ? 'nd' : day === 3 ? 'rd' : 'th'} of the month
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              This billing date will be applied site-wide for all fee calculations
-            </p>
+        <div className="grid gap-6 max-w-2xl">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-2">
+              <Label htmlFor="billingDay">Billing Date (Day of Month)</Label>
+              <Select value={billingDay} onValueChange={setBillingDay} disabled={!isBillingEditMode}>
+                <SelectTrigger id="billingDay">
+                  <SelectValue placeholder="Select day" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 10 }, (_, i) => i + 1).map(day => (
+                    <SelectItem key={day} value={day.toString()}>
+                      {day}{day === 1 ? 'st' : day === 2 ? 'nd' : day === 3 ? 'rd' : 'th'} of the month
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Date when bills are generated
+              </p>
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="billingDueDay">Billing Due Date (Day of Month)</Label>
+              <Select value={billingDueDay} onValueChange={setBillingDueDay} disabled={!isBillingEditMode}>
+                <SelectTrigger id="billingDueDay">
+                  <SelectValue placeholder="Select day" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="30">30th (Last day of month)</SelectItem>
+                  {Array.from({ length: 4 }, (_, i) => 29 - i).map(day => (
+                    <SelectItem key={day} value={day.toString()}>
+                      {day}th of the month
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Payment deadline for all new courses
+              </p>
+            </div>
           </div>
 
-          <Button onClick={handleSaveBillingDate} variant="accent" className="w-fit">
-            Save Billing Configuration
-          </Button>
+          {isBillingEditMode && (
+            <div className="flex gap-3">
+              <Button onClick={handleSaveBillingDate} variant="accent" className="w-fit">
+                Save Billing Configuration
+              </Button>
+              <Button onClick={handleCancelBillingEdit} variant="outline" className="w-fit">
+                Cancel
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Auto Account Closure Configuration */}
       <div className="rounded-xl border border-border bg-card p-6 space-y-6">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-destructive/10">
-            <UserX className="h-5 w-5 text-destructive" />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-destructive/10">
+              <UserX className="h-5 w-5 text-destructive" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-foreground">Auto Account Closure</h2>
+              <p className="text-sm text-muted-foreground">Configure automatic account closure period</p>
+            </div>
           </div>
-          <div>
-            <h2 className="font-semibold text-foreground">Auto Account Closure</h2>
-            <p className="text-sm text-muted-foreground">Configure automatic account closure period</p>
-          </div>
+          {!isClosureEditMode && (
+            <Button variant="outline" size="sm" onClick={() => setIsClosureEditMode(true)}>
+              <Pencil className="h-4 w-4 mr-2" />
+              Edit
+            </Button>
+          )}
         </div>
 
         <div className="grid gap-6 max-w-2xl">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-2">
               <Label htmlFor="closureMonth">Closure Month</Label>
-              <Select value={closureMonth} onValueChange={setClosureMonth}>
+              <Select value={closureMonth} onValueChange={setClosureMonth} disabled={!isClosureEditMode}>
                 <SelectTrigger id="closureMonth">
                   <SelectValue placeholder="Select month" />
                 </SelectTrigger>
@@ -282,7 +362,7 @@ export default function AdminSettings() {
 
             <div className="grid gap-2">
               <Label htmlFor="closureDay">Day of Month</Label>
-              <Select value={closureDay} onValueChange={setClosureDay}>
+              <Select value={closureDay} onValueChange={setClosureDay} disabled={!isClosureEditMode}>
                 <SelectTrigger id="closureDay">
                   <SelectValue placeholder="Select day" />
                 </SelectTrigger>
@@ -303,9 +383,16 @@ export default function AdminSettings() {
             </p>
           </div>
 
-          <Button onClick={handleSaveAccountClosureConfig} variant="accent" className="w-fit">
-            Save Closure Configuration
-          </Button>
+          {isClosureEditMode && (
+            <div className="flex gap-3">
+              <Button onClick={handleSaveAccountClosureConfig} variant="accent" className="w-fit">
+                Save Closure Configuration
+              </Button>
+              <Button onClick={handleCancelClosureEdit} variant="outline" className="w-fit">
+                Cancel
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -459,6 +546,38 @@ export default function AdminSettings() {
               className={!toggleStatusProvider?.isActive ? 'bg-green-600 hover:bg-green-700 text-white' : ''}
             >
               {toggleStatusProvider?.isActive ? 'Deactivate' : 'Reactivate'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Settings Saved Confirmation Dialog */}
+      <Dialog open={isSettingsSavedDialogOpen} onOpenChange={setIsSettingsSavedDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-success/10">
+                <Check className="h-6 w-6 text-success" />
+              </div>
+              <div>
+                <DialogTitle>Settings Saved Successfully</DialogTitle>
+                <DialogDescription className="mt-1">
+                  {savedSettingType === 'billing' 
+                    ? 'Your billing configuration has been updated.'
+                    : 'Your account closure configuration has been updated.'}
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+          <div className="rounded-lg border border-blue-200 bg-blue-50 dark:bg-blue-950 dark:border-blue-800 p-4">
+            <p className="text-sm text-blue-900 dark:text-blue-100">
+              <strong>Note:</strong> These new settings will apply to all future course creations and transactions. 
+              Existing courses and their billing schedules will remain unchanged.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setIsSettingsSavedDialogOpen(false)}>
+              Got it
             </Button>
           </DialogFooter>
         </DialogContent>

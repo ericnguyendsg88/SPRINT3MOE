@@ -15,6 +15,7 @@ const EDUCATION_LEVEL_PRIORITY = {
 /**
  * Determines the student's education level based on their active enrollments
  * Returns the highest education level among all active courses
+ * Uses the course's education_level field directly
  */
 export function determineEducationLevel(
   activeEnrollments: EnrollmentWithCourse[],
@@ -24,26 +25,18 @@ export function determineEducationLevel(
     return null;
   }
 
-  let highestLevel: typeof activeEnrollments[0] extends { courses: { provider: string } } 
-    ? 'primary' | 'secondary' | 'post_secondary' | 'tertiary' | 'postgraduate' | null 
-    : null = null;
+  let highestLevel: 'primary' | 'secondary' | 'post_secondary' | 'tertiary' | 'postgraduate' | null = null;
   let highestPriority = 0;
 
   for (const enrollment of activeEnrollments) {
-    const providerName = enrollment.courses?.provider;
-    if (!providerName) continue;
+    // Get education level directly from the course
+    const courseEducationLevel = enrollment.courses?.education_level;
+    if (!courseEducationLevel) continue;
 
-    // Find the provider
-    const provider = providers.find(p => p.name === providerName);
-    if (!provider || !provider.educationLevels || provider.educationLevels.length === 0) continue;
-
-    // Get the highest education level from this provider
-    for (const level of provider.educationLevels) {
-      const priority = EDUCATION_LEVEL_PRIORITY[level];
-      if (priority > highestPriority) {
-        highestPriority = priority;
-        highestLevel = level;
-      }
+    const priority = EDUCATION_LEVEL_PRIORITY[courseEducationLevel];
+    if (priority > highestPriority) {
+      highestPriority = priority;
+      highestLevel = courseEducationLevel;
     }
   }
 

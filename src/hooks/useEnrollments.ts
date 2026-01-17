@@ -22,6 +22,7 @@ export interface EnrollmentWithCourse extends Enrollment {
     billing_cycle: string;
     course_run_start: string | null;
     course_run_end: string | null;
+    education_level: 'primary' | 'secondary' | 'post_secondary' | 'tertiary' | 'postgraduate' | null;
   };
 }
 
@@ -33,7 +34,7 @@ export function useEnrollments() {
         .from('enrollments')
         .select(`
           *,
-          courses (id, name, provider, fee, billing_cycle, course_run_start, course_run_end)
+          courses (id, name, provider, fee, billing_cycle, course_run_start, course_run_end, education_level)
         `)
         .order('enrollment_date', { ascending: false });
       
@@ -51,7 +52,7 @@ export function useEnrollmentsByAccount(accountId: string) {
         .from('enrollments')
         .select(`
           *,
-          courses (id, name, provider, fee, billing_cycle, course_run_start, course_run_end)
+          courses (id, name, provider, fee, billing_cycle, course_run_start, course_run_end, education_level)
         `)
         .eq('account_id', accountId)
         .order('enrollment_date', { ascending: false });
@@ -79,7 +80,14 @@ export function useCreateEnrollment() {
       return result;
     },
     onSuccess: async (data) => {
+      // Invalidate all enrollment queries
       queryClient.invalidateQueries({ queryKey: ['enrollments'] });
+      // Invalidate account-specific enrollments for e-service
+      queryClient.invalidateQueries({ queryKey: ['enrollments', 'account', data.account_id] });
+      // Invalidate course charges as enrollment affects billing
+      queryClient.invalidateQueries({ queryKey: ['course-charges'] });
+      // Invalidate account holders to update enrolled courses count
+      queryClient.invalidateQueries({ queryKey: ['account-holders'] });
       // Sync education level based on new enrollment
       await syncEducationLevel(data.account_id);
       toast.success('Enrollment created successfully');
@@ -107,7 +115,14 @@ export function useUpdateEnrollment() {
       return result;
     },
     onSuccess: async (data) => {
+      // Invalidate all enrollment queries
       queryClient.invalidateQueries({ queryKey: ['enrollments'] });
+      // Invalidate account-specific enrollments for e-service
+      queryClient.invalidateQueries({ queryKey: ['enrollments', 'account', data.account_id] });
+      // Invalidate course charges as enrollment status affects billing
+      queryClient.invalidateQueries({ queryKey: ['course-charges'] });
+      // Invalidate account holders to update enrolled courses count
+      queryClient.invalidateQueries({ queryKey: ['account-holders'] });
       // Sync education level when enrollment is updated (e.g., status change)
       await syncEducationLevel(data.account_id);
       toast.success('Enrollment updated successfully');
@@ -133,7 +148,14 @@ export function useDeleteEnrollment() {
       return accountId;
     },
     onSuccess: async (accountId) => {
+      // Invalidate all enrollment queries
       queryClient.invalidateQueries({ queryKey: ['enrollments'] });
+      // Invalidate account-specific enrollments for e-service
+      queryClient.invalidateQueries({ queryKey: ['enrollments', 'account', accountId] });
+      // Invalidate course charges as enrollment affects billing
+      queryClient.invalidateQueries({ queryKey: ['course-charges'] });
+      // Invalidate account holders to update enrolled courses count
+      queryClient.invalidateQueries({ queryKey: ['account-holders'] });
       // Sync education level after enrollment is deleted
       await syncEducationLevel(accountId);
       toast.success('Enrollment deleted successfully');

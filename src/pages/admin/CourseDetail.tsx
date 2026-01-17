@@ -157,14 +157,24 @@ export default function CourseDetail() {
   const defaultCourseFields: FieldDefinition[] = [
     { key: 'name', label: 'Course Name', visible: true, order: 0 },
     { key: 'provider', label: 'Provider', visible: true, order: 1 },
-    { key: 'course_start', label: 'Course Start', visible: true, order: 2 },
-    { key: 'course_end', label: 'Course End', visible: true, order: 3 },
-    { key: 'payment_type', label: 'Payment Type', visible: true, order: 4 },
-    { key: 'billing_cycle', label: 'Billing Cycle', visible: true, order: 5 },
-    { key: 'status', label: 'Status', visible: true, order: 6 },
-    { key: 'fee', label: 'Fee per Cycle', visible: true, order: 7 },
-    { key: 'mode_of_training', label: 'Mode of Training', visible: false, order: 8 },
+    { key: 'education_level', label: 'Education Level', visible: true, order: 2 },
+    { key: 'course_start', label: 'Course Start', visible: true, order: 3 },
+    { key: 'course_end', label: 'Course End', visible: true, order: 4 },
+    { key: 'payment_type', label: 'Payment Type', visible: true, order: 5 },
+    { key: 'billing_cycle', label: 'Billing Cycle', visible: true, order: 6 },
+    { key: 'status', label: 'Status', visible: true, order: 7 },
+    { key: 'fee', label: 'Fee per Cycle', visible: true, order: 8 },
+    { key: 'mode_of_training', label: 'Mode of Training', visible: false, order: 9 },
   ];
+
+  // Education level labels
+  const educationLevelLabels: Record<string, string> = {
+    primary: 'Primary',
+    secondary: 'Secondary',
+    post_secondary: 'Post-Secondary',
+    tertiary: 'Tertiary',
+    postgraduate: 'Postgraduate',
+  };
 
   // Helper to calculate total fee based on course duration and billing cycle
   const calculateCourseTotalFee = () => {
@@ -775,6 +785,10 @@ export default function CourseDetail() {
                         provider: {
                           icon: <Building className="h-5 w-5 text-muted-foreground mt-0.5" />,
                           value: course.provider,
+                        },
+                        education_level: {
+                          icon: <GraduationCap className="h-5 w-5 text-muted-foreground mt-0.5" />,
+                          value: course.education_level ? educationLevelLabels[course.education_level] : 'Not Set',
                         },
                         mode_of_training: {
                           icon: <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />,
