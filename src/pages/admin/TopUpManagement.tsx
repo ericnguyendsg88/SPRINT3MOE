@@ -305,9 +305,14 @@ export default function TopUpManagement() {
 
     // Education status filter (multiple selections)
     if (selectedEducationStatus.length > 0) {
-      targeted = targeted.filter(account => 
-        account.education_level && selectedEducationStatus.includes(account.education_level)
-      );
+      targeted = targeted.filter(account => {
+        // If 'none' is selected, include accounts without education level
+        if (selectedEducationStatus.includes('none') && !account.education_level) {
+          return true;
+        }
+        // Otherwise, check if the account's education level is in the selected list
+        return account.education_level && selectedEducationStatus.includes(account.education_level);
+      });
     }
 
     // Schooling status filter
@@ -366,9 +371,14 @@ export default function TopUpManagement() {
       
       // Education status filter
       if (criteria.educationStatus && criteria.educationStatus.length > 0) {
-        targeted = targeted.filter(account => 
-          account.education_level && criteria.educationStatus.includes(account.education_level)
-        );
+        targeted = targeted.filter(account => {
+          // If 'none' is selected, include accounts without education level
+          if (criteria.educationStatus.includes('none') && !account.education_level) {
+            return true;
+          }
+          // Otherwise, check if the account's education level is in the selected list
+          return account.education_level && criteria.educationStatus.includes(account.education_level);
+        });
       }
       
       // Schooling status filter
@@ -1780,13 +1790,14 @@ export default function TopUpManagement() {
                   <div className="grid gap-2">
                     <Label className="text-sm">Education Status</Label>
                     <div className="space-y-2">
-                      {['primary', 'secondary', 'post_secondary', 'tertiary', 'postgraduate'].map(level => {
+                      {['primary', 'secondary', 'post_secondary', 'tertiary', 'postgraduate', 'none'].map(level => {
                         const labels: Record<string, string> = {
                           primary: 'Primary',
                           secondary: 'Secondary',
                           post_secondary: 'Post-Secondary',
                           tertiary: 'Tertiary',
                           postgraduate: 'Postgraduate',
+                          none: 'None / Not Set',
                         };
                         return (
                           <div key={level} className="flex items-center gap-2">
