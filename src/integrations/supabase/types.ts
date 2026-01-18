@@ -153,6 +153,7 @@ export type Database = {
           course_run_start: string | null
           created_at: string
           description: string | null
+          education_level: string | null
           fee: number
           id: string
           intake_size: number | null
@@ -172,6 +173,7 @@ export type Database = {
           course_run_start?: string | null
           created_at?: string
           description?: string | null
+          education_level?: string | null
           fee: number
           id?: string
           intake_size?: number | null
@@ -191,6 +193,7 @@ export type Database = {
           course_run_start?: string | null
           created_at?: string
           description?: string | null
+          education_level?: string | null
           fee?: number
           id?: string
           intake_size?: number | null

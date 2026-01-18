@@ -58,9 +58,11 @@ export default function AdminSettings() {
 
   // Filter and paginate providers
   const filteredProviders = useMemo(() => {
-    return providers.filter(provider =>
-      provider.name.toLowerCase().includes(providerSearchQuery.toLowerCase())
-    );
+    return providers
+      .filter(provider =>
+        provider.name.toLowerCase().includes(providerSearchQuery.toLowerCase())
+      )
+      .sort((a, b) => a.name.localeCompare(b.name));
   }, [providers, providerSearchQuery]);
 
   const totalPages = Math.ceil(filteredProviders.length / itemsPerPage);

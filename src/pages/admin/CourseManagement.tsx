@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Plus, Download, ArrowUpDown, ArrowUp, ArrowDown, ArrowLeft, ArrowUpRight, X, Building, Monitor, CreditCard, RefreshCw, CheckCircle, Calendar, CalendarDays, DollarSign, GraduationCap, ChevronDown, Activity, Laptop } from 'lucide-react';
+import { Search, Plus, Download, ArrowUpDown, ArrowUp, ArrowDown, ArrowLeft, ArrowUpRight, X, Building, Monitor, CreditCard, RefreshCw, CheckCircle, Calendar, CalendarDays, DollarSign, GraduationCap, ChevronDown, Activity, Laptop, Check, ChevronsUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -22,6 +22,14 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/utils';
@@ -60,6 +68,7 @@ export default function CourseManagement() {
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [isAddCourseOpen, setIsAddCourseOpen] = useState(false);
   const [isReviewStep, setIsReviewStep] = useState(false);
+  const [providerSearchOpen, setProviderSearchOpen] = useState(false);
 
   // Form state for adding course
   const [courseName, setCourseName] = useState('');
@@ -927,21 +936,47 @@ export default function CourseManagement() {
 
                 <div className="grid gap-2">
                   <Label htmlFor="provider">Provider *</Label>
-                  <Select value={provider} onValueChange={(val) => {
-                    setProvider(val);
-                    setCourseEducationLevel('');
-                  }}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select provider" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {activeProviders.map((p) => (
-                        <SelectItem key={p} value={p}>
-                          {p}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Popover open={providerSearchOpen} onOpenChange={setProviderSearchOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={providerSearchOpen}
+                        className="w-full justify-between"
+                      >
+                        {provider || "Select provider"}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder="Search provider..." />
+                        <CommandList>
+                          <CommandEmpty>No provider found.</CommandEmpty>
+                          <CommandGroup>
+                            {activeProviders.map((p) => (
+                              <CommandItem
+                                key={p}
+                                value={p}
+                                onSelect={(currentValue) => {
+                                  setProvider(currentValue);
+                                  setCourseEducationLevel('');
+                                  setProviderSearchOpen(false);
+                                }}
+                              >
+                                <Check
+                                  className={`mr-2 h-4 w-4 ${
+                                    provider === p ? "opacity-100" : "opacity-0"
+                                  }`}
+                                />
+                                {p}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </div>
 
                 {/* Education Level - auto-filled based on provider */}
