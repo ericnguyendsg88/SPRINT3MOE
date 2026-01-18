@@ -72,6 +72,8 @@ export default function CourseManagement() {
   const [modeOfTraining, setModeOfTraining] = useState('');
   const [courseStatus, setCourseStatus] = useState('active');
   const [courseEducationLevel, setCourseEducationLevel] = useState('');
+  const [billingDate, setBillingDate] = useState('');
+  const [billingDueDate, setBillingDueDate] = useState('');
 
   // Fetch data
   const { data: courses = [], isLoading: loadingCourses } = useCourses();
@@ -319,6 +321,8 @@ export default function CourseManagement() {
     setTotalFee('');
     setModeOfTraining('');
     setCourseStatus('active');
+    setBillingDate('');
+    setBillingDueDate('');
     setIsReviewStep(false);
   };
 
@@ -416,6 +420,17 @@ export default function CourseManagement() {
       toast.error('Please enter a valid fee amount');
       return false;
     }
+    // Validate billing dates for recurring payments
+    if (effectivePaymentType === 'recurring') {
+      if (!billingDate || !billingDueDate) {
+        toast.error('Please select billing date and billing due date');
+        return false;
+      }
+      if (new Date(billingDueDate) < new Date(billingDate)) {
+        toast.error('Billing due date cannot be before billing date');
+        return false;
+      }
+    }
     return true;
   };
 
@@ -477,6 +492,8 @@ export default function CourseManagement() {
         mode_of_training: (modeOfTraining || null) as any,
         status: courseStatus as any,
         education_level: courseEducationLevel,
+        billing_date: billingDate || null,
+        billing_due_date: billingDueDate || null,
         description: null,
         main_location: null,
         register_by: null,
@@ -1103,6 +1120,38 @@ export default function CourseManagement() {
                             </div>
                           )}
                         </div>
+
+                        {/* Billing Date Fields */}
+                        <div className="grid gap-4 sm:grid-cols-2 pt-3 border-t">
+                          <div className="grid gap-2">
+                            <Label htmlFor="billingDate">Billing Date *</Label>
+                            <DateInput 
+                              id="billingDate" 
+                              value={billingDate}
+                              onChange={(value) => {
+                                setBillingDate(value);
+                                // Auto-populate billing due date if not set or if current due date is before new billing date
+                                if (value && (!billingDueDate || new Date(billingDueDate) < new Date(value))) {
+                                  setBillingDueDate(value);
+                                }
+                              }}
+                              minDate={courseStart ? new Date(courseStart) : new Date()}
+                              maxDate={courseEnd ? new Date(courseEnd) : undefined}
+                            />
+                            <p className="text-xs text-muted-foreground">Must be within course dates</p>
+                          </div>
+                          <div className="grid gap-2">
+                            <Label htmlFor="billingDueDate">Billing Due Date *</Label>
+                            <DateInput 
+                              id="billingDueDate" 
+                              value={billingDueDate}
+                              onChange={setBillingDueDate}
+                              minDate={billingDate ? new Date(billingDate) : (courseStart ? new Date(courseStart) : new Date())}
+                              maxDate={courseEnd ? new Date(courseEnd) : undefined}
+                            />
+                            <p className="text-xs text-muted-foreground">Must be on or after billing date</p>
+                          </div>
+                        </div>
                       </div>
                     )}
                   </>
@@ -1211,6 +1260,14 @@ export default function CourseManagement() {
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Number of Cycles:</span>
                           <span className="font-medium">{calculateCycles(courseStart, courseEnd, billingCycle)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Billing Date:</span>
+                          <span className="font-medium">{formatDate(billingDate)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Billing Due Date:</span>
+                          <span className="font-medium">{formatDate(billingDueDate)}</span>
                         </div>
                       </>
                     )}
