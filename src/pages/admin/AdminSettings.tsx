@@ -30,8 +30,8 @@ export default function AdminSettings() {
   const [newProviderEducationLevels, setNewProviderEducationLevels] = useState<Array<'primary' | 'secondary' | 'post_secondary' | 'tertiary' | 'postgraduate'>>([]);
   const [editingProvider, setEditingProvider] = useState<CourseProvider | null>(null);
   const [toggleStatusProvider, setToggleStatusProvider] = useState<CourseProvider | null>(null);
-  const [billingDay, setBillingDay] = useState('5');
-  const [billingDueDay, setBillingDueDay] = useState('30'); // Default to last day of month
+  const [billingDay, setBillingDay] = useState(() => localStorage.getItem('defaultBillingDay') || '5');
+  const [billingDueDaysAfter, setBillingDueDaysAfter] = useState(() => localStorage.getItem('defaultBillingDueDaysAfter') || '30');
   
   // Provider search and pagination
   const [providerSearchQuery, setProviderSearchQuery] = useState('');
@@ -40,8 +40,8 @@ export default function AdminSettings() {
   
   // Billing edit mode
   const [isBillingEditMode, setIsBillingEditMode] = useState(false);
-  const [originalBillingDay, setOriginalBillingDay] = useState('5');
-  const [originalBillingDueDay, setOriginalBillingDueDay] = useState('30');
+  const [originalBillingDay, setOriginalBillingDay] = useState(() => localStorage.getItem('defaultBillingDay') || '5');
+  const [originalBillingDueDaysAfter, setOriginalBillingDueDaysAfter] = useState(() => localStorage.getItem('defaultBillingDueDaysAfter') || '30');
   
   // Auto Account Closure Configuration
   const [closureMonth, setClosureMonth] = useState('12'); // December
@@ -138,8 +138,10 @@ export default function AdminSettings() {
   };
 
   const handleSaveBillingDate = () => {
+    localStorage.setItem('defaultBillingDay', billingDay);
+    localStorage.setItem('defaultBillingDueDaysAfter', billingDueDaysAfter);
     setOriginalBillingDay(billingDay);
-    setOriginalBillingDueDay(billingDueDay);
+    setOriginalBillingDueDaysAfter(billingDueDaysAfter);
     setIsBillingEditMode(false);
     setSavedSettingType('billing');
     setIsSettingsSavedDialogOpen(true);
@@ -147,7 +149,7 @@ export default function AdminSettings() {
 
   const handleCancelBillingEdit = () => {
     setBillingDay(originalBillingDay);
-    setBillingDueDay(originalBillingDueDay);
+    setBillingDueDaysAfter(originalBillingDueDaysAfter);
     setIsBillingEditMode(false);
   };
 
@@ -370,22 +372,18 @@ export default function AdminSettings() {
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="billingDueDay">Billing Due Date (Day of Month)</Label>
-              <Select value={billingDueDay} onValueChange={setBillingDueDay} disabled={!isBillingEditMode}>
-                <SelectTrigger id="billingDueDay">
-                  <SelectValue placeholder="Select day" />
+              <Label htmlFor="billingDueDaysAfter">Payment Due</Label>
+              <Select value={billingDueDaysAfter} onValueChange={setBillingDueDaysAfter} disabled={!isBillingEditMode}>
+                <SelectTrigger id="billingDueDaysAfter">
+                  <SelectValue placeholder="Select due date" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="30">30th (Last day of month)</SelectItem>
-                  {Array.from({ length: 4 }, (_, i) => 29 - i).map(day => (
-                    <SelectItem key={day} value={day.toString()}>
-                      {day}th of the month
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="14">14 days after billing date</SelectItem>
+                  <SelectItem value="30">30 days after billing date</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                Payment deadline for all new courses
+                Days after billing date for payment deadline
               </p>
             </div>
           </div>

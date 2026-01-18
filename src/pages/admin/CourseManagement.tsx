@@ -72,8 +72,8 @@ export default function CourseManagement() {
   const [modeOfTraining, setModeOfTraining] = useState('');
   const [courseStatus, setCourseStatus] = useState('active');
   const [courseEducationLevel, setCourseEducationLevel] = useState('');
-  const [billingDayOfMonth, setBillingDayOfMonth] = useState('');
-  const [billingDueDaysAfter, setBillingDueDaysAfter] = useState('');
+  const [billingDayOfMonth, setBillingDayOfMonth] = useState(() => localStorage.getItem('defaultBillingDay') || '5');
+  const [billingDueDaysAfter, setBillingDueDaysAfter] = useState(() => localStorage.getItem('defaultBillingDueDaysAfter') || '30');
 
   // Fetch data
   const { data: courses = [], isLoading: loadingCourses } = useCourses();
@@ -328,8 +328,9 @@ export default function CourseManagement() {
     setTotalFee('');
     setModeOfTraining('');
     setCourseStatus('active');
-    setBillingDayOfMonth('');
-    setBillingDueDaysAfter('');
+    // Reset to defaults from settings
+    setBillingDayOfMonth(localStorage.getItem('defaultBillingDay') || '5');
+    setBillingDueDaysAfter(localStorage.getItem('defaultBillingDueDaysAfter') || '30');
     setIsReviewStep(false);
   };
 
