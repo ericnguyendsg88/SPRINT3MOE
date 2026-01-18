@@ -473,7 +473,7 @@ export type Database = {
         | "postgraduate"
       enrollment_status: "active" | "completed" | "withdrawn"
       in_school_status: "in_school" | "not_in_school"
-      residential_status: "sc" | "spr" | "non_resident"
+      residential_status: "sc" | "pr" | "non_resident"
       rule_status: "active" | "inactive"
       top_up_schedule_status:
         | "scheduled"
@@ -630,7 +630,7 @@ export const Constants = {
       ],
       enrollment_status: ["active", "completed", "withdrawn"],
       in_school_status: ["in_school", "not_in_school"],
-      residential_status: ["sc", "spr", "non_resident"],
+      residential_status: ["sc", "pr", "non_resident"],
       rule_status: ["active", "inactive"],
       top_up_schedule_status: [
         "scheduled",

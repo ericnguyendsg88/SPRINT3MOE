@@ -320,7 +320,7 @@ export default function StudentDetail() {
 
   const residentialStatusLabels: Record<string, string> = {
     sc: 'SC (Singapore Citizen)',
-    spr: 'SPR (Singapore Permanent Resident)',
+    pr: 'PR (Permanent Resident)',
     non_resident: 'Non-Resident',
   };
 

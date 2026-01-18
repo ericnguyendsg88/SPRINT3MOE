@@ -140,7 +140,7 @@ export default function AccountManagement() {
 
   const residentialStatusLabels: Record<string, string> = {
     sc: 'Singapore Citizen',
-    spr: 'PR',
+    pr: 'PR',
     non_resident: 'Non-Resident',
   };
 
@@ -855,7 +855,7 @@ export default function AccountManagement() {
               <Input 
                 id="residentialStatus" 
                 placeholder="Auto-filled from NRIC verification" 
-                value={residentialStatus === 'sc' ? 'Singapore Citizen' : residentialStatus === 'spr' ? 'Permanent Resident' : residentialStatus === 'non_resident' ? 'Non-Resident' : ''}
+                value={residentialStatus === 'sc' ? 'Singapore Citizen' : residentialStatus === 'pr' ? 'Permanent Resident' : residentialStatus === 'non_resident' ? 'Non-Resident' : ''}
                 disabled={true}
               />
             </div>
