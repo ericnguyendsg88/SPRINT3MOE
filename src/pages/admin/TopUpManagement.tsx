@@ -2019,9 +2019,9 @@ export default function TopUpManagement() {
       <Dialog open={showMatchingAccounts} onOpenChange={setShowMatchingAccounts}>
         <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Matching Accounts</DialogTitle>
+            <DialogTitle>Matching Accounts (Real-time)</DialogTitle>
             <DialogDescription>
-              {getTargetedAccounts().length} account(s) match your criteria
+              Complete list of accounts matching the targeting criteria in real-time. The system identifies {getTargetedAccounts().length} eligible account(s) based on top-up rules.
             </DialogDescription>
           </DialogHeader>
           <div className="mt-4">
@@ -2086,7 +2086,9 @@ export default function TopUpManagement() {
               {selectedScheduleDetail?.type === 'batch' ? 'Batch Top-up Details' : 'Individual Top-up Details'}
             </DialogTitle>
             <DialogDescription>
-              Complete information about this scheduled top-up
+              {selectedScheduleDetail?.type === 'batch' 
+                ? 'Complete information about this scheduled top-up. Eligible accounts are computed in real-time based on top-up rules and targeting criteria.'
+                : 'Complete information about this scheduled top-up'}
             </DialogDescription>
           </DialogHeader>
           {selectedScheduleDetail && (
@@ -2319,9 +2321,9 @@ export default function TopUpManagement() {
       <Dialog open={showBatchEligibleAccounts} onOpenChange={setShowBatchEligibleAccounts}>
         <DialogContent className="sm:max-w-[800px] max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Eligible Accounts Details</DialogTitle>
+            <DialogTitle>Eligible Accounts Details (Real-time)</DialogTitle>
             <DialogDescription>
-              {selectedScheduleDetail?.rule_name} - Complete list of accounts matching the targeting criteria
+              {selectedScheduleDetail?.rule_name} - Complete list of accounts matching the targeting criteria in real-time. The system identifies eligible accounts based on top-up rules.
             </DialogDescription>
           </DialogHeader>
           <div className="mt-4">
