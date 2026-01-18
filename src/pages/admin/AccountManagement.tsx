@@ -416,15 +416,6 @@ export default function AccountManagement() {
       ),
     },
     {
-      key: 'account_type',
-      header: 'Account Type',
-      render: (account: typeof accountHolders[0]) => (
-        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getAccountTypeBadgeClass(account.account_type, account.residential_status)}`}>
-          {getAccountTypeLabel(account.account_type, account.residential_status)}
-        </span>
-      ),
-    },
-    {
       key: 'education_level',
       header: (
         <button 

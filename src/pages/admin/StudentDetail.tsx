@@ -1023,16 +1023,7 @@ export default function StudentDetail() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-foreground">{account.name}</h1>
-              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                accountActiveStatus === 'active' 
-                  ? 'bg-green-100 text-green-800' 
-                  : 'bg-red-100 text-red-800'
-              }`}>
-                {accountActiveStatus === 'active' ? 'Active' : 'Inactive'}
-              </span>
-            </div>
+            <h1 className="text-2xl font-bold text-foreground">{account.name}</h1>
             <div className="flex items-center gap-2">
               <p className="text-muted-foreground">{account.nric}</p>
               <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getAccountTypeBadgeClass(account.account_type, account.residential_status)}`}>
@@ -1043,6 +1034,13 @@ export default function StudentDetail() {
         </div>
         
         <div className="flex items-center gap-2">
+          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+            accountActiveStatus === 'active' 
+              ? 'bg-green-100 text-green-800' 
+              : 'bg-red-100 text-red-800'
+          }`}>
+            {accountActiveStatus === 'active' ? 'Active' : 'Inactive'}
+          </span>
           <Button variant="outline" onClick={openEditDialog}>
             <Pencil className="h-4 w-4 mr-2" />
             Edit
