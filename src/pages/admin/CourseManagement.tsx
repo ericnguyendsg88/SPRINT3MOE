@@ -72,8 +72,8 @@ export default function CourseManagement() {
   const [modeOfTraining, setModeOfTraining] = useState('');
   const [courseStatus, setCourseStatus] = useState('active');
   const [courseEducationLevel, setCourseEducationLevel] = useState('');
-  const [billingDate, setBillingDate] = useState('');
-  const [billingDueDate, setBillingDueDate] = useState('');
+  const [billingDayOfMonth, setBillingDayOfMonth] = useState('');
+  const [billingDueDaysAfter, setBillingDueDaysAfter] = useState('');
 
   // Fetch data
   const { data: courses = [], isLoading: loadingCourses } = useCourses();
@@ -125,6 +125,13 @@ export default function CourseManagement() {
     post_secondary: 'Post-Secondary',
     tertiary: 'Tertiary',
     postgraduate: 'Postgraduate',
+  };
+
+  // Helper function to get ordinal suffix for a number
+  const getOrdinalSuffix = (n: number): string => {
+    const s = ['th', 'st', 'nd', 'rd'];
+    const v = n % 100;
+    return n + (s[(v - 20) % 10] || s[v] || s[0]);
   };
 
   // Helper function to get enrolled students count for a course
@@ -321,8 +328,8 @@ export default function CourseManagement() {
     setTotalFee('');
     setModeOfTraining('');
     setCourseStatus('active');
-    setBillingDate('');
-    setBillingDueDate('');
+    setBillingDayOfMonth('');
+    setBillingDueDaysAfter('');
     setIsReviewStep(false);
   };
 
@@ -420,14 +427,10 @@ export default function CourseManagement() {
       toast.error('Please enter a valid fee amount');
       return false;
     }
-    // Validate billing dates for recurring payments
+    // Validate billing day and due days for recurring payments
     if (effectivePaymentType === 'recurring') {
-      if (!billingDate || !billingDueDate) {
-        toast.error('Please select billing date and billing due date');
-        return false;
-      }
-      if (new Date(billingDueDate) < new Date(billingDate)) {
-        toast.error('Billing due date cannot be before billing date');
+      if (!billingDayOfMonth || !billingDueDaysAfter) {
+        toast.error('Please select billing day of month and due date option');
         return false;
       }
     }
@@ -492,8 +495,8 @@ export default function CourseManagement() {
         mode_of_training: (modeOfTraining || null) as any,
         status: courseStatus as any,
         education_level: courseEducationLevel,
-        billing_date: billingDate || null,
-        billing_due_date: billingDueDate || null,
+        billing_date: billingDayOfMonth || null,
+        billing_due_date: billingDueDaysAfter || null,
         description: null,
         main_location: null,
         register_by: null,
@@ -1121,35 +1124,36 @@ export default function CourseManagement() {
                           )}
                         </div>
 
-                        {/* Billing Date Fields */}
+                        {/* Billing Day of Month Fields */}
                         <div className="grid gap-4 sm:grid-cols-2 pt-3 border-t">
                           <div className="grid gap-2">
-                            <Label htmlFor="billingDate">Billing Date *</Label>
-                            <DateInput 
-                              id="billingDate" 
-                              value={billingDate}
-                              onChange={(value) => {
-                                setBillingDate(value);
-                                // Auto-populate billing due date if not set or if current due date is before new billing date
-                                if (value && (!billingDueDate || new Date(billingDueDate) < new Date(value))) {
-                                  setBillingDueDate(value);
-                                }
-                              }}
-                              minDate={courseStart ? new Date(courseStart) : new Date()}
-                              maxDate={courseEnd ? new Date(courseEnd) : undefined}
-                            />
-                            <p className="text-xs text-muted-foreground">Must be within course dates</p>
+                            <Label htmlFor="billingDayOfMonth">Billing Day of Month *</Label>
+                            <Select value={billingDayOfMonth} onValueChange={setBillingDayOfMonth}>
+                              <SelectTrigger id="billingDayOfMonth">
+                                <SelectValue placeholder="Select day" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {Array.from({ length: 28 }, (_, i) => i + 1).map(day => (
+                                  <SelectItem key={day} value={day.toString()}>
+                                    {day}{day === 1 ? 'st' : day === 2 ? 'nd' : day === 3 ? 'rd' : 'th'} of the month
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <p className="text-xs text-muted-foreground">Day when bills are generated each cycle</p>
                           </div>
                           <div className="grid gap-2">
-                            <Label htmlFor="billingDueDate">Billing Due Date *</Label>
-                            <DateInput 
-                              id="billingDueDate" 
-                              value={billingDueDate}
-                              onChange={setBillingDueDate}
-                              minDate={billingDate ? new Date(billingDate) : (courseStart ? new Date(courseStart) : new Date())}
-                              maxDate={courseEnd ? new Date(courseEnd) : undefined}
-                            />
-                            <p className="text-xs text-muted-foreground">Must be on or after billing date</p>
+                            <Label htmlFor="billingDueDaysAfter">Payment Due *</Label>
+                            <Select value={billingDueDaysAfter} onValueChange={setBillingDueDaysAfter}>
+                              <SelectTrigger id="billingDueDaysAfter">
+                                <SelectValue placeholder="Select due date" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="14">14 days after billing date</SelectItem>
+                                <SelectItem value="30">30 days after billing date</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <p className="text-xs text-muted-foreground">Days after billing date for payment deadline</p>
                           </div>
                         </div>
                       </div>
@@ -1262,12 +1266,12 @@ export default function CourseManagement() {
                           <span className="font-medium">{calculateCycles(courseStart, courseEnd, billingCycle)}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Billing Date:</span>
-                          <span className="font-medium">{formatDate(billingDate)}</span>
+                          <span className="text-muted-foreground">Billing Day:</span>
+                          <span className="font-medium">{getOrdinalSuffix(parseInt(billingDayOfMonth))} of the month</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Billing Due Date:</span>
-                          <span className="font-medium">{formatDate(billingDueDate)}</span>
+                          <span className="text-muted-foreground">Payment Due:</span>
+                          <span className="font-medium">{billingDueDaysAfter} days after billing</span>
                         </div>
                       </>
                     )}

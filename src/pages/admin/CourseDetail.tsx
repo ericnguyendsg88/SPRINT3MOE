@@ -97,13 +97,27 @@ export default function CourseDetail() {
   const deleteEnrollmentMutation = useDeleteEnrollment();
   const createCourseChargeMutation = useCreateCourseCharge();
 
-  // Helper to calculate due date based on billing cycle
-  const calculateDueDate = () => {
-    const today = new Date();
-    const dueDate = new Date(today.getFullYear(), today.getMonth(), 5);
-    if (today.getDate() > 5) {
-      dueDate.setMonth(dueDate.getMonth() + 1);
+  // Helper to calculate due date based on course billing settings and enrollment date
+  const calculateDueDate = (enrollmentDate: Date = new Date()) => {
+    const billingDay = parseInt(course?.billing_date || '5') || 5; // Default to 5th
+    const dueDaysAfter = parseInt(course?.billing_due_date || '30') || 30; // Default to 30 days
+    
+    const year = enrollmentDate.getFullYear();
+    const month = enrollmentDate.getMonth();
+    const enrollmentDay = enrollmentDate.getDate();
+    
+    // If enrolled after the billing day, use next month's billing date
+    let billingDate: Date;
+    if (enrollmentDay > billingDay) {
+      billingDate = new Date(year, month + 1, billingDay);
+    } else {
+      billingDate = new Date(year, month, billingDay);
     }
+    
+    // Add the due days after billing date
+    const dueDate = new Date(billingDate);
+    dueDate.setDate(dueDate.getDate() + dueDaysAfter);
+    
     return dueDate.toISOString().split('T')[0];
   };
 
@@ -163,10 +177,19 @@ export default function CourseDetail() {
     { key: 'course_end', label: 'Course End', visible: true, order: 4 },
     { key: 'payment_type', label: 'Payment Type', visible: true, order: 5 },
     { key: 'billing_cycle', label: 'Billing Cycle', visible: true, order: 6 },
-    { key: 'status', label: 'Status', visible: true, order: 7 },
-    { key: 'fee', label: 'Fee per Cycle', visible: true, order: 8 },
-    { key: 'mode_of_training', label: 'Mode of Training', visible: false, order: 9 },
+    { key: 'billing_day', label: 'Billing Day', visible: true, order: 7 },
+    { key: 'payment_due', label: 'Payment Due', visible: true, order: 8 },
+    { key: 'status', label: 'Status', visible: true, order: 9 },
+    { key: 'fee', label: 'Fee per Cycle', visible: true, order: 10 },
+    { key: 'mode_of_training', label: 'Mode of Training', visible: false, order: 11 },
   ];
+
+  // Helper function to get ordinal suffix for a number
+  const getOrdinalSuffix = (n: number): string => {
+    const s = ['th', 'st', 'nd', 'rd'];
+    const v = n % 100;
+    return n + (s[(v - 20) % 10] || s[v] || s[0]);
+  };
 
   // Education level labels
   const educationLevelLabels: Record<string, string> = {
@@ -839,6 +862,14 @@ export default function CourseDetail() {
                         billing_cycle: {
                           icon: <RefreshCw className="h-5 w-5 text-muted-foreground mt-0.5" />,
                           value: getPaymentType() === 'One Time' ? '—' : billingCycleLabels[course.billing_cycle as BillingCycle],
+                        },
+                        billing_day: {
+                          icon: <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />,
+                          value: getPaymentType() === 'One Time' ? '—' : (course.billing_date ? `${getOrdinalSuffix(parseInt(course.billing_date))} of the month` : '5th of the month'),
+                        },
+                        payment_due: {
+                          icon: <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />,
+                          value: getPaymentType() === 'One Time' ? '—' : (course.billing_due_date ? `${course.billing_due_date} days after billing` : '30 days after billing'),
                         },
                         status: {
                           icon: <CheckCircle className="h-5 w-5 text-muted-foreground mt-0.5" />,

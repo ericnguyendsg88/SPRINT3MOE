@@ -132,46 +132,35 @@ export default function CourseStudents() {
     student.nric.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Calculate due date based on course start month and billing cycle.
-  // Due date is always the last day of the billing month.
-  const calculateDueDate = (courseStartDate: string | null, billingCycle: string): string => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const cycleMonths: Record<string, number> = {
-      monthly: 1,
-      quarterly: 3,
-      biannually: 6,
-      yearly: 12,
-      one_time: 0,
-    };
-
-    const monthsPerCycle = cycleMonths[billingCycle] ?? 1;
-
-    // If we don't have a start date, fall back to current month.
-    if (!courseStartDate || monthsPerCycle === 0) {
-      const due = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-      return due.toISOString().split('T')[0];
+  // Calculate due date based on enrollment date, course billing day settings, and billing cycle.
+  // Uses the course's billing_date (day of month) and billing_due_date (days after billing) settings.
+  const calculateDueDate = (
+    billingDayOfMonth: string | null, 
+    billingDueDaysAfter: string | null,
+    enrollmentDate: Date = new Date()
+  ): string => {
+    const billingDay = parseInt(billingDayOfMonth || '5') || 5; // Default to 5th
+    const dueDaysAfter = parseInt(billingDueDaysAfter || '30') || 30; // Default to 30 days
+    
+    // Get the billing date for the enrollment month
+    const year = enrollmentDate.getFullYear();
+    const month = enrollmentDate.getMonth();
+    const enrollmentDay = enrollmentDate.getDate();
+    
+    // If enrolled after the billing day, use next month's billing date
+    let billingDate: Date;
+    if (enrollmentDay > billingDay) {
+      // Use next month
+      billingDate = new Date(year, month + 1, billingDay);
+    } else {
+      // Use current month
+      billingDate = new Date(year, month, billingDay);
     }
-
-    const start = new Date(courseStartDate);
-    start.setHours(0, 0, 0, 0);
-
-    // Anchor cycles to the course start month.
-    const startMonth = new Date(start.getFullYear(), start.getMonth(), 1);
-    const currentMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-
-    const monthsDiff =
-      (currentMonth.getFullYear() - startMonth.getFullYear()) * 12 +
-      (currentMonth.getMonth() - startMonth.getMonth());
-
-    // If course hasn't started yet, use the start month.
-    const cycleIndex = monthsDiff < 0 ? 0 : Math.floor(monthsDiff / monthsPerCycle);
-    const billingMonthStart = new Date(startMonth);
-    billingMonthStart.setMonth(startMonth.getMonth() + cycleIndex * monthsPerCycle);
-
-    // Due date is last day of billing month.
-    const dueDate = new Date(billingMonthStart.getFullYear(), billingMonthStart.getMonth() + 1, 0);
+    
+    // Add the due days after billing date
+    const dueDate = new Date(billingDate);
+    dueDate.setDate(dueDate.getDate() + dueDaysAfter);
+    
     return dueDate.toISOString().split('T')[0];
   };
 
@@ -209,7 +198,7 @@ export default function CourseStudents() {
           course_name: course.name,
           amount: proratedAmount,
           amount_paid: 0,
-          due_date: calculateDueDate(course.course_run_start, course.billing_cycle),
+          due_date: calculateDueDate(course.billing_date, course.billing_due_date, enrollmentDate),
           status: 'outstanding',
           paid_date: null,
           payment_method: null,
