@@ -773,12 +773,9 @@ export default function StudentDetail() {
                   </div>
                   <div className="space-y-1">
                     <p className="text-xs text-muted-foreground uppercase tracking-wide">Education Level</p>
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium text-foreground">
-                        {account.education_level ? educationLevelLabels[account.education_level] : '—'}
-                      </p>
-                      <span className="text-xs text-muted-foreground">(Auto-determined by courses)</span>
-                    </div>
+                    <p className="font-medium text-foreground">
+                      {account.education_level ? educationLevelLabels[account.education_level] : '—'}
+                    </p>
                   </div>
                   <div className="space-y-1">
                     <p className="text-xs text-muted-foreground uppercase tracking-wide">Residential Status</p>
