@@ -718,7 +718,7 @@ export default function CourseFees() {
             onSizeChange={(size) => updateSectionSize(item.id, size)}
             isEditMode={isEditMode}
           >
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className={`grid gap-4 ${canUseBalance(currentUser.account_type, currentUser.residential_status) ? 'md:grid-cols-2' : 'md:grid-cols-1'}`}>
               <div className="rounded-xl border border-border bg-card p-6">
                 <div className="flex items-center gap-4">
                   <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-warning/10">
@@ -731,17 +731,20 @@ export default function CourseFees() {
                 </div>
               </div>
 
-              <div className="rounded-xl border border-border bg-card p-6">
-                <div className="flex items-center gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-accent/10">
-                    <Wallet className="h-6 w-6 text-accent" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Account Balance</p>
-                    <p className="text-2xl font-bold text-foreground">${Number(currentUser.balance).toFixed(2)}</p>
+              {/* Account Balance - only for Education Accounts */}
+              {canUseBalance(currentUser.account_type, currentUser.residential_status) && (
+                <div className="rounded-xl border border-border bg-card p-6">
+                  <div className="flex items-center gap-4">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-accent/10">
+                      <Wallet className="h-6 w-6 text-accent" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Account Balance</p>
+                      <p className="text-2xl font-bold text-foreground">${Number(currentUser.balance).toFixed(2)}</p>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           </ResizableSection>
         );
