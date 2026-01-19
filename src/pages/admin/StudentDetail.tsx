@@ -119,6 +119,7 @@ export default function StudentDetail() {
   const [editName, setEditName] = useState('');
   const [editEmail, setEditEmail] = useState('');
   const [editPhone, setEditPhone] = useState('');
+  const [editCountryCode, setEditCountryCode] = useState('+65');
   const [editDateOfBirth, setEditDateOfBirth] = useState('');
   const [editRegisteredAddress, setEditRegisteredAddress] = useState('');
   const [editMailingAddress, setEditMailingAddress] = useState('');
@@ -129,7 +130,21 @@ export default function StudentDetail() {
     if (account) {
       setEditName(account.name);
       setEditEmail(account.email);
-      setEditPhone(account.phone || '');
+      // Parse phone number to separate country code if it starts with +
+      const phone = account.phone || '';
+      if (phone.startsWith('+')) {
+        const match = phone.match(/^(\+\d{1,4})\s*(.*)$/);
+        if (match) {
+          setEditCountryCode(match[1]);
+          setEditPhone(match[2]);
+        } else {
+          setEditCountryCode('+65');
+          setEditPhone(phone);
+        }
+      } else {
+        setEditCountryCode('+65');
+        setEditPhone(phone);
+      }
       setEditDateOfBirth(account.date_of_birth);
       setEditRegisteredAddress(account.residential_address || '');
       setEditMailingAddress(account.mailing_address || '');
@@ -142,11 +157,14 @@ export default function StudentDetail() {
   const handleSaveEdit = async () => {
     if (!account) return;
     
+    // Combine country code with phone number
+    const fullPhone = editPhone ? `${editCountryCode} ${editPhone}` : null;
+    
     await updateAccountMutation.mutateAsync({
       id: account.id,
       name: editName,
       email: editEmail,
-      phone: editPhone || null,
+      phone: fullPhone,
       date_of_birth: editDateOfBirth,
       residential_address: editRegisteredAddress || null,
       mailing_address: editMailingAddress || null,
@@ -762,8 +780,8 @@ export default function StudentDetail() {
                     <div className="flex items-center gap-2">
                       <Phone className="h-4 w-4 text-muted-foreground" />
                       <EditableText
-                        value={account.phone ? `+65 ${account.phone}` : ''}
-                        onSave={(value) => handleFieldUpdate('phone', value.replace(/^\+65\s*/, ''))}
+                        value={account.phone || ''}
+                        onSave={(value) => handleFieldUpdate('phone', value)}
                         isEditMode={isEditMode}
                         className="font-medium text-foreground"
                         type="tel"
@@ -1149,6 +1167,16 @@ export default function StudentDetail() {
             </div>
 
             <div className="grid gap-2">
+              <Label htmlFor="editResidentialStatus">Residential Status</Label>
+              <Input
+                id="editResidentialStatus"
+                value={residentialStatusLabels[account?.residential_status || ''] || account?.residential_status || ''}
+                disabled
+                className="bg-muted cursor-not-allowed"
+              />
+            </div>
+
+            <div className="grid gap-2">
               <Label htmlFor="editEmail">Email *</Label>
               <Input
                 id="editEmail"
@@ -1162,9 +1190,21 @@ export default function StudentDetail() {
             <div className="grid gap-2">
               <Label htmlFor="editPhone">Phone</Label>
               <div className="flex gap-2">
-                <div className="flex items-center px-3 border rounded-md bg-muted">
-                  <span className="text-sm font-medium">+65</span>
-                </div>
+                <Select value={editCountryCode} onValueChange={setEditCountryCode}>
+                  <SelectTrigger className="w-[120px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="+65">🇸🇬 +65</SelectItem>
+                    <SelectItem value="+60">🇲🇾 +60</SelectItem>
+                    <SelectItem value="+62">🇮🇩 +62</SelectItem>
+                    <SelectItem value="+86">🇨🇳 +86</SelectItem>
+                    <SelectItem value="+91">🇮🇳 +91</SelectItem>
+                    <SelectItem value="+1">🇺🇸 +1</SelectItem>
+                    <SelectItem value="+44">🇬🇧 +44</SelectItem>
+                    <SelectItem value="+61">🇦🇺 +61</SelectItem>
+                  </SelectContent>
+                </Select>
                 <Input
                   id="editPhone"
                   value={editPhone}
