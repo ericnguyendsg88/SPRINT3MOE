@@ -762,8 +762,8 @@ export default function StudentDetail() {
                     <div className="flex items-center gap-2">
                       <Phone className="h-4 w-4 text-muted-foreground" />
                       <EditableText
-                        value={account.phone || ''}
-                        onSave={(value) => handleFieldUpdate('phone', value)}
+                        value={account.phone ? `+65 ${account.phone}` : ''}
+                        onSave={(value) => handleFieldUpdate('phone', value.replace(/^\+65\s*/, ''))}
                         isEditMode={isEditMode}
                         className="font-medium text-foreground"
                         type="tel"
@@ -792,6 +792,16 @@ export default function StudentDetail() {
                     <p className="font-medium text-foreground">
                       {formatDate(account.created_at)}
                     </p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Account Status</p>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      accountActiveStatus === 'active' 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-red-100 text-red-800'
+                    }`}>
+                      {accountActiveStatus === 'active' ? 'Active' : 'Inactive'}
+                    </span>
                   </div>
                   <div className="space-y-1 md:col-span-2">
                     <p className="text-xs text-muted-foreground uppercase tracking-wide">Registered Address</p>
@@ -1031,13 +1041,6 @@ export default function StudentDetail() {
         </div>
         
         <div className="flex items-center gap-2">
-          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-            accountActiveStatus === 'active' 
-              ? 'bg-green-100 text-green-800' 
-              : 'bg-red-100 text-red-800'
-          }`}>
-            {accountActiveStatus === 'active' ? 'Active' : 'Inactive'}
-          </span>
           <Button variant="outline" onClick={openEditDialog}>
             <Pencil className="h-4 w-4 mr-2" />
             Edit
@@ -1156,12 +1159,18 @@ export default function StudentDetail() {
 
             <div className="grid gap-2">
               <Label htmlFor="editPhone">Phone</Label>
-              <Input
-                id="editPhone"
-                value={editPhone}
-                onChange={(e) => setEditPhone(e.target.value)}
-                placeholder="Enter phone number"
-              />
+              <div className="flex gap-2">
+                <div className="flex items-center px-3 border rounded-md bg-muted">
+                  <span className="text-sm font-medium">+65</span>
+                </div>
+                <Input
+                  id="editPhone"
+                  value={editPhone}
+                  onChange={(e) => setEditPhone(e.target.value)}
+                  placeholder="Enter phone number"
+                  className="flex-1"
+                />
+              </div>
             </div>
 
             <div className="grid gap-2">
