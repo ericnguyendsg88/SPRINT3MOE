@@ -590,10 +590,13 @@ export default function AccountManagement() {
               {/* Residential Status Filter */}
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className="h-9 w-[170px] justify-between">
+                  <Button variant="outline" className="h-9 min-w-[170px] justify-between">
                     <Home className="h-4 w-4 mr-2 text-muted-foreground shrink-0" />
                     <span className="truncate">
-                      {residentialStatusFilter.length === 0 ? 'Residential' : `${residentialStatusFilter.length} selected`}
+                      {residentialStatusFilter.length === 0 
+                        ? 'Residential' 
+                        : residentialStatusFilter.map(s => residentialStatusLabels[s]).join(', ')
+                      }
                     </span>
                     <ChevronDown className="ml-2 h-4 w-4 shrink-0" />
                   </Button>
