@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Plus, ArrowUpDown, ArrowUp, ArrowDown, ArrowLeft, ArrowUpRight, X, Building, CreditCard, RefreshCw, CheckCircle, Calendar, CalendarDays, DollarSign, GraduationCap, ChevronDown, Activity, Laptop, Check, ChevronsUpDown } from 'lucide-react';
+import { Search, Plus, ArrowUpDown, ArrowUp, ArrowDown, ArrowLeft, ArrowUpRight, X, Building, CreditCard, RefreshCw, CheckCircle, Calendar, CalendarDays, DollarSign, GraduationCap, ChevronDown, ChevronLeft, ChevronRight, Activity, Laptop, Check, ChevronsUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -65,6 +65,8 @@ export default function CourseManagement() {
   const [feeMax, setFeeMax] = useState<string>('');
   const [sortField, setSortField] = useState<SortField>('created_at');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [isAddCourseOpen, setIsAddCourseOpen] = useState(false);
   const [isReviewStep, setIsReviewStep] = useState(false);
   const [providerSearchOpen, setProviderSearchOpen] = useState(false);
@@ -271,6 +273,7 @@ export default function CourseManagement() {
     setCourseEndDate('');
     setFeeMin('');
     setFeeMax('');
+    setCurrentPage(1);
   };
 
   // Check if any filters are active
@@ -846,13 +849,58 @@ export default function CourseManagement() {
             )}
           </div>
 
+          {/* Pagination and Results Info */}
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-muted-foreground">
+              Showing {filteredAndSortedCourses.length === 0 ? 0 : ((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredAndSortedCourses.length)} of {filteredAndSortedCourses.length} results
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Rows per page:</span>
+              <Select value={itemsPerPage.toString()} onValueChange={(value) => { setItemsPerPage(Number(value)); setCurrentPage(1); }}>
+                <SelectTrigger className="w-[70px] h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="20">20</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
           {/* Data Table */}
           <DataTable 
-            data={filteredAndSortedCourses} 
+            data={filteredAndSortedCourses.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)} 
             columns={courseColumns}
             emptyMessage="No courses found matching your criteria"
             onRowClick={(course) => handleRowClick(course.id)}
           />
+
+          {/* Pagination Controls */}
+          {filteredAndSortedCourses.length > 0 && (
+            <div className="flex items-center justify-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                Page {currentPage} of {Math.ceil(filteredAndSortedCourses.length / itemsPerPage)}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(p => Math.min(Math.ceil(filteredAndSortedCourses.length / itemsPerPage), p + 1))}
+                disabled={currentPage >= Math.ceil(filteredAndSortedCourses.length / itemsPerPage)}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 

@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Users, User, Trash2, ChevronDown, X, ArrowUpDown, ArrowUp, ArrowDown, CalendarClock, Calendar } from 'lucide-react';
+import { Plus, Search, Users, User, Trash2, ChevronDown, ChevronLeft, ChevronRight, X, ArrowUpDown, ArrowUp, ArrowDown, CalendarClock, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DateInput } from '@/components/ui/date-input';
@@ -106,6 +106,8 @@ export default function TopUpManagement() {
   const [sortColumn, setSortColumn] = useState<'type' | 'name' | 'amount' | 'status' | 'scheduledDate' | 'createdDate' | null>('scheduledDate'); // Default to scheduled date
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc'); // Default to descending (most recent first)
   const [sortOption, setSortOption] = useState<'default' | 'recently-created'>('default'); // Sort by option
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   // Fetch data from database
   const { data: topUpSchedules = [], isLoading: loadingSchedules } = useTopUpSchedules();
@@ -1107,6 +1109,7 @@ export default function TopUpManagement() {
                   setFilterPeriod('all');
                   setCustomStartDate('');
                   setCustomEndDate('');
+                  setCurrentPage(1);
                 }}
               >
                 <X className="h-4 w-4 mr-1" />
@@ -1304,9 +1307,29 @@ export default function TopUpManagement() {
             </div>
           </div>
 
+          {/* Pagination and Results Info */}
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-muted-foreground">
+              Showing {filteredTopUpSchedules.length === 0 ? 0 : ((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredTopUpSchedules.length)} of {filteredTopUpSchedules.length} results
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Rows per page:</span>
+              <Select value={itemsPerPage.toString()} onValueChange={(value) => { setItemsPerPage(Number(value)); setCurrentPage(1); }}>
+                <SelectTrigger className="w-[70px] h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="20">20</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
           {/* Data Table */}
           <DataTable 
-            data={filteredTopUpSchedules} 
+            data={filteredTopUpSchedules.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)} 
             columns={scheduleColumns}
             emptyMessage="No top-ups recorded yet"
             onRowClick={(schedule) => {
@@ -1314,6 +1337,31 @@ export default function TopUpManagement() {
               setShowDetailModal(true);
             }}
           />
+
+          {/* Pagination Controls */}
+          {filteredTopUpSchedules.length > 0 && (
+            <div className="flex items-center justify-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                Page {currentPage} of {Math.ceil(filteredTopUpSchedules.length / itemsPerPage)}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(p => Math.min(Math.ceil(filteredTopUpSchedules.length / itemsPerPage), p + 1))}
+                disabled={currentPage >= Math.ceil(filteredTopUpSchedules.length / itemsPerPage)}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 

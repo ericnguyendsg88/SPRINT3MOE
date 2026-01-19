@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Plus, UserPlus, BookOpen, ArrowUpDown, ArrowUp, ArrowDown, X, Check, EyeOff, Eye, ChevronDown, GraduationCap, School, Home, Wallet, Calendar } from 'lucide-react';
+import { Search, Plus, UserPlus, BookOpen, ArrowUpDown, ArrowUp, ArrowDown, X, Check, EyeOff, Eye, ChevronDown, ChevronLeft, ChevronRight, GraduationCap, School, Home, Wallet, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -53,6 +53,8 @@ export default function AccountManagement() {
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
   const [showInactive, setShowInactive] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   
   // Form state for adding student
   const [nric, setNric] = useState('');
@@ -233,6 +235,7 @@ export default function AccountManagement() {
     setBalanceMax('');
     setAgeMin('');
     setAgeMax('');
+    setCurrentPage(1);
   };
 
   // Check if any filters are active
@@ -667,13 +670,59 @@ export default function AccountManagement() {
             )}
           </div>
 
+          {/* Pagination and Results Info */}
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-muted-foreground">
+              Showing {filteredAndSortedAccounts.length === 0 ? 0 : ((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredAndSortedAccounts.length)} of {filteredAndSortedAccounts.length} results
+              {hasActiveFilters && ` (filtered from ${accountHolders.length} total)`}
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Rows per page:</span>
+              <Select value={itemsPerPage.toString()} onValueChange={(value) => { setItemsPerPage(Number(value)); setCurrentPage(1); }}>
+                <SelectTrigger className="w-[70px] h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="20">20</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
           {/* Data Table */}
           <DataTable 
-            data={filteredAndSortedAccounts} 
+            data={filteredAndSortedAccounts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)} 
             columns={accountColumns}
             emptyMessage="No accounts found matching your criteria"
             onRowClick={(account) => handleRowClick(account.id)}
           />
+
+          {/* Pagination Controls */}
+          {filteredAndSortedAccounts.length > 0 && (
+            <div className="flex items-center justify-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                Page {currentPage} of {Math.ceil(filteredAndSortedAccounts.length / itemsPerPage)}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(p => Math.min(Math.ceil(filteredAndSortedAccounts.length / itemsPerPage), p + 1))}
+                disabled={currentPage >= Math.ceil(filteredAndSortedAccounts.length / itemsPerPage)}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 
