@@ -734,7 +734,7 @@ export default function StudentDetail() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-6 md:grid-cols-2">
                   <div className="space-y-1">
                     <p className="text-xs text-muted-foreground uppercase tracking-wide">Date of Birth</p>
                     <div className="flex items-center gap-2">
@@ -785,7 +785,9 @@ export default function StudentDetail() {
                   </div>
                   <div className="space-y-1">
                     <p className="text-xs text-muted-foreground uppercase tracking-wide">Schooling Status</p>
-                    <StatusBadge status={enrolledCourses.length > 0 ? 'in_school' : 'not_in_school'} />
+                    <p className="font-medium text-foreground">
+                      {enrolledCourses.length > 0 ? 'In School' : 'Not in School'}
+                    </p>
                   </div>
                   <div className="space-y-1">
                     <p className="text-xs text-muted-foreground uppercase tracking-wide">Account Created</p>
@@ -798,7 +800,7 @@ export default function StudentDetail() {
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                       accountActiveStatus === 'active' 
                         ? 'bg-green-100 text-green-800' 
-                        : 'bg-red-100 text-red-800'
+                        : 'bg-gray-100 text-gray-800'
                     }`}>
                       {accountActiveStatus === 'active' ? 'Active' : 'Inactive'}
                     </span>

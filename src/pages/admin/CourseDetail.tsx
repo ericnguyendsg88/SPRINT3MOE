@@ -179,7 +179,7 @@ export default function CourseDetail() {
     { key: 'billing_cycle', label: 'Billing Cycle', visible: true, order: 6 },
     { key: 'billing_day', label: 'Billing Day', visible: true, order: 7 },
     { key: 'payment_due', label: 'Payment Due', visible: true, order: 8 },
-    { key: 'status', label: 'Status', visible: true, order: 9 },
+    { key: 'status', label: 'Course Status', visible: true, order: 9 },
     { key: 'fee', label: 'Fee per Cycle', visible: true, order: 10 },
     { key: 'mode_of_training', label: 'Mode of Training', visible: false, order: 11 },
   ];
