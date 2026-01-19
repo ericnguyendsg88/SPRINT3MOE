@@ -2035,12 +2035,12 @@ export default function TopUpManagement() {
               </div>
             )}
             
-            {/* Matching Accounts Section (only for customized targeting) */}
+            {/* Eligible Accounts Section (only for customized targeting) */}
             {batchTargeting === 'customized' && (
               <div className="p-4 bg-muted/50 rounded-lg space-y-3">
                 <div className="flex items-center justify-between">
                   <p className="text-sm text-muted-foreground">
-                    Matching accounts: <span className="font-semibold text-foreground">{getTargetedAccounts().length}</span>
+                    Eligible Accounts: <span className="font-semibold text-foreground">{getTargetedAccounts().length}</span>
                   </p>
                   {getTargetedAccounts().length > 0 && (
                     <Button
@@ -2066,7 +2066,7 @@ export default function TopUpManagement() {
             
             <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
               <p className="text-xs font-medium text-blue-900 dark:text-blue-100">
-                {executeNow ? 'This batch top-up will be executed immediately for all matching accounts.' : 'This batch top-up will be scheduled for execution.'}
+                {executeNow ? 'This batch top-up will be executed immediately for all eligible accounts.' : 'This batch top-up will be scheduled for execution.'}
               </p>
             </div>
           </div>
@@ -2088,11 +2088,11 @@ export default function TopUpManagement() {
         </DialogContent>
       </Dialog>
 
-      {/* Matching Accounts Modal */}
+      {/* Eligible Accounts Modal */}
       <Dialog open={showMatchingAccounts} onOpenChange={setShowMatchingAccounts}>
         <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Matching Accounts (Real-time)</DialogTitle>
+            <DialogTitle>Eligible Accounts (Real-time)</DialogTitle>
             <DialogDescription>
               Complete list of accounts matching the targeting criteria in real-time. The system identifies {getTargetedAccounts().length} eligible account(s) based on top-up rules.
             </DialogDescription>
