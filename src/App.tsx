@@ -32,7 +32,7 @@ import EServiceCourseDetail from "./pages/eservice/CourseDetail";
 import AccountBalance from "./pages/eservice/AccountBalance";
 import CourseFees from "./pages/eservice/CourseFees";
 import Profile from "./pages/eservice/Profile";
-import Help from "./pages/eservice/Help";
+
 
 const queryClient = new QueryClient();
 
@@ -69,7 +69,7 @@ const App = () => (
               <Route path="balance" element={<AccountBalance />} />
               <Route path="fees" element={<CourseFees />} />
               <Route path="profile" element={<Profile />} />
-              <Route path="help" element={<Help />} />
+              
             </Route>
             
             {/* Catch-all */}

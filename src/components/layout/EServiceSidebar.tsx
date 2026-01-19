@@ -4,7 +4,6 @@ import {
   Wallet, 
   User, 
   CreditCard, 
-  HelpCircle,
   ChevronRight,
   LogOut,
   ChevronDown
@@ -37,11 +36,6 @@ const baseMenuItems = [
     label: 'My Profile', 
     icon: User, 
     path: '/eservice/profile' 
-  },
-  { 
-    label: 'Help & Support', 
-    icon: HelpCircle, 
-    path: '/eservice/help' 
   },
 ];
 

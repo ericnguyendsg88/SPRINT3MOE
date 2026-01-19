@@ -59,6 +59,7 @@ export default function CourseFees() {
   const [payAllUseBalance, setPayAllUseBalance] = useState(true);
   const [payAllBalanceAmount, setPayAllBalanceAmount] = useState('');
   const [payAllExternalMethod, setPayAllExternalMethod] = useState('');
+  const [payAllExternalAmount, setPayAllExternalAmount] = useState('');
 
   // Page layout for drag-and-drop
   const {
@@ -189,17 +190,20 @@ export default function CourseFees() {
       setPayAllBalanceAmount('0');
       setPayAllUseBalance(false);
       setPayAllExternalMethod('');
+      setPayAllExternalAmount(totalOutstanding.toFixed(2));
     } else {
       // Education Accounts: can use balance
       const defaultBalanceAmount = Math.min(Number(currentUser.balance), totalOutstanding);
       setPayAllBalanceAmount(defaultBalanceAmount.toFixed(2));
       setPayAllUseBalance(true);
       setPayAllExternalMethod('');
+      setPayAllExternalAmount(Math.max(0, totalOutstanding - defaultBalanceAmount).toFixed(2));
     }
     setIsPayAllDialogOpen(true);
   };
 
   const payAllBalanceAmountNum = parseFloat(payAllBalanceAmount) || 0;
+  const payAllExternalAmountNum = parseFloat(payAllExternalAmount) || 0;
   // For Student Accounts, max balance usable is 0
   const payAllMaxBalanceUsable = canUseAccountBalance && currentUser 
     ? Math.min(Number(currentUser.balance), totalOutstanding) 
@@ -208,13 +212,15 @@ export default function CourseFees() {
   const payAllRemainingAmount = canUseAccountBalance 
     ? Math.max(0, totalOutstanding - (payAllUseBalance ? payAllBalanceAmountNum : 0))
     : totalOutstanding;
+  // Total payment for Pay All
+  const payAllTotalPayment = (payAllUseBalance && canUseAccountBalance ? payAllBalanceAmountNum : 0) + payAllExternalAmountNum;
 
   const processPayAll = async () => {
     if (!currentUser || pendingCharges.length === 0 || isProcessing) return;
 
     // For Student Accounts, balance is always 0
     const balancePaid = (payAllUseBalance && canUseAccountBalance) ? payAllBalanceAmountNum : 0;
-    const externalPaid = totalOutstanding - balancePaid;
+    const externalPaid = payAllExternalAmountNum;
     const totalPaid = balancePaid + externalPaid;
 
     if (totalPaid < totalOutstanding) {
@@ -1138,14 +1144,19 @@ export default function CourseFees() {
                 </>
               )}
 
-              {/* External payment - for Student Accounts always show, for Education show if remaining */}
-              {(!canUseAccountBalance || payAllRemainingAmount > 0) && (
-                <div className={canUseAccountBalance ? "border-t border-border pt-4" : ""}>
-                  {canUseAccountBalance && (
-                    <p className="text-sm text-muted-foreground mb-3">
-                      Remaining amount: <span className="font-semibold text-foreground">${payAllRemainingAmount.toFixed(2)}</span>
+              {/* External payment - always show for combined payment */}
+              <div className={canUseAccountBalance ? "border-t border-border pt-4" : ""}>
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-sm font-medium">
+                    {canUseAccountBalance ? 'External Payment' : 'Payment Method'}
+                  </p>
+                  {canUseAccountBalance && payAllRemainingAmount > 0 && (
+                    <p className="text-sm text-muted-foreground">
+                      Remaining: <span className="font-semibold text-foreground">${payAllRemainingAmount.toFixed(2)}</span>
                     </p>
                   )}
+                </div>
+                <div className="space-y-3">
                   <div className="space-y-2">
                     <Label>{canUseAccountBalance ? 'External Payment Method' : 'Payment Method'}</Label>
                     <Select value={payAllExternalMethod} onValueChange={setPayAllExternalMethod}>
@@ -1159,15 +1170,31 @@ export default function CourseFees() {
                       </SelectContent>
                     </Select>
                   </div>
+                  <div className="space-y-2">
+                    <Label>External Amount</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={payAllExternalAmount}
+                      onChange={(e) => setPayAllExternalAmount(e.target.value)}
+                      placeholder="0.00"
+                    />
+                  </div>
                 </div>
-              )}
+              </div>
             </div>
 
             <div className="rounded-lg bg-muted p-4">
               <div className="flex justify-between">
                 <span className="font-medium">Total Payment</span>
-                <span className="font-bold text-lg">${totalOutstanding.toFixed(2)}</span>
+                <span className="font-bold text-lg">${payAllTotalPayment.toFixed(2)}</span>
               </div>
+              {payAllTotalPayment < totalOutstanding && (
+                <p className="text-xs text-destructive mt-1">
+                  Payment must equal ${totalOutstanding.toFixed(2)}
+                </p>
+              )}
             </div>
           </div>
           <div className="flex justify-end gap-3">
@@ -1177,7 +1204,7 @@ export default function CourseFees() {
             <Button 
               variant="accent" 
               onClick={processPayAll}
-              disabled={isProcessing || (payAllRemainingAmount > 0 && !payAllExternalMethod)}
+              disabled={isProcessing || payAllTotalPayment < totalOutstanding || (payAllExternalAmountNum > 0 && !payAllExternalMethod)}
             >
               {isProcessing ? 'Processing...' : 'Confirm Payment'}
             </Button>
