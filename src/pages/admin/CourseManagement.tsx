@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Plus, ArrowUpDown, ArrowUp, ArrowDown, ArrowLeft, ArrowUpRight, X, Building, Monitor, CreditCard, RefreshCw, CheckCircle, Calendar, CalendarDays, DollarSign, GraduationCap, ChevronDown, Activity, Laptop, Check, ChevronsUpDown } from 'lucide-react';
+import { Search, Plus, ArrowUpDown, ArrowUp, ArrowDown, ArrowLeft, ArrowUpRight, X, Building, CreditCard, RefreshCw, CheckCircle, Calendar, CalendarDays, DollarSign, GraduationCap, ChevronDown, Activity, Laptop, Check, ChevronsUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -56,7 +56,6 @@ export default function CourseManagement() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [providerFilter, setProviderFilter] = useState<string[]>([]);
-  const [modeFilter, setModeFilter] = useState<string[]>([]);
   const [paymentTypeFilter, setPaymentTypeFilter] = useState<string[]>([]);
   const [billingCycleFilter, setBillingCycleFilter] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
@@ -161,12 +160,6 @@ export default function CourseManagement() {
     yearly: 'Annually',
   };
 
-  const modeLabels: Record<string, string> = {
-    online: 'Online',
-    'in-person': 'In-Person',
-    hybrid: 'Hybrid',
-  };
-
   const statusLabels: Record<string, string> = {
     active: 'Active',
     inactive: 'Inactive',
@@ -183,10 +176,6 @@ export default function CourseManagement() {
       
       // Provider filter (multi-select)
       const matchesProvider = providerFilter.length === 0 || providerFilter.includes(course.provider);
-      
-      // Mode filter (multi-select)
-      const matchesMode = modeFilter.length === 0 || 
-        (course.mode_of_training && modeFilter.includes(course.mode_of_training));
       
       // Payment type filter (multi-select)
       const coursePaymentType = course.billing_cycle === 'one_time' ? 'one_time' : 'recurring';
@@ -212,7 +201,7 @@ export default function CourseManagement() {
       const matchesFeeMin = !feeMin || fee >= parseFloat(feeMin);
       const matchesFeeMax = !feeMax || fee <= parseFloat(feeMax);
 
-      return matchesSearch && matchesProvider && matchesMode && 
+      return matchesSearch && matchesProvider && 
              matchesPaymentType && matchesBillingCycle && matchesStatus &&
              matchesCourseStart && matchesCourseEnd &&
              matchesFeeMin && matchesFeeMax;
@@ -247,7 +236,7 @@ export default function CourseManagement() {
     });
 
     return filtered;
-  }, [courses, searchQuery, providerFilter, modeFilter, paymentTypeFilter, 
+  }, [courses, searchQuery, providerFilter, paymentTypeFilter, 
       billingCycleFilter, statusFilter, courseStartDate, courseEndDate, 
       feeMin, feeMax, sortField, sortDirection]);
 
@@ -275,7 +264,6 @@ export default function CourseManagement() {
   const clearAllFilters = () => {
     setSearchQuery('');
     setProviderFilter([]);
-    setModeFilter([]);
     setPaymentTypeFilter([]);
     setBillingCycleFilter([]);
     setStatusFilter([]);
@@ -287,19 +275,13 @@ export default function CourseManagement() {
 
   // Check if any filters are active
   const hasActiveFilters = searchQuery || providerFilter.length > 0 ||
-    modeFilter.length > 0 || paymentTypeFilter.length > 0 ||
+    paymentTypeFilter.length > 0 ||
     billingCycleFilter.length > 0 || statusFilter.length > 0 ||
     courseStartDate || courseEndDate || feeMin || feeMax;
 
   // Toggle filter selection helpers
   const toggleProviderFilter = (value: string) => {
     setProviderFilter(prev => 
-      prev.includes(value) ? prev.filter(v => v !== value) : [...prev, value]
-    );
-  };
-
-  const toggleModeFilter = (value: string) => {
-    setModeFilter(prev => 
       prev.includes(value) ? prev.filter(v => v !== value) : [...prev, value]
     );
   };
@@ -804,35 +786,6 @@ export default function CourseManagement() {
                   </div>
                 </PopoverContent>
               </Popover>
-
-              {/* Mode Filter */}
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="h-9 w-[150px] justify-between">
-                    <Monitor className="h-4 w-4 mr-2 text-muted-foreground shrink-0" />
-                    <span className="truncate">
-                      {modeFilter.length === 0 ? 'Mode' : `${modeFilter.length} selected`}
-                    </span>
-                    <ChevronDown className="ml-2 h-4 w-4 shrink-0" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[180px] p-3" align="start">
-                  <div className="space-y-2">
-                    {Object.entries(modeLabels).map(([value, label]) => (
-                      <div key={value} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`mode-${value}`}
-                          checked={modeFilter.includes(value)}
-                          onCheckedChange={() => toggleModeFilter(value)}
-                        />
-                        <label htmlFor={`mode-${value}`} className="text-sm cursor-pointer">
-                          {label}
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                </PopoverContent>
-              </Popover>
             </div>
 
             {/* Second Row: Date Filters + Fee Range + Clear */}
@@ -1245,7 +1198,7 @@ export default function CourseManagement() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Mode of Training:</span>
-                      <span className="font-medium text-right">{modeOfTraining ? modeLabels[modeOfTraining] : 'Not specified'}</span>
+                      <span className="font-medium text-right capitalize">{modeOfTraining || 'Not specified'}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Status:</span>
