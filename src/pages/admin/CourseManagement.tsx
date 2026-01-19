@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Plus, Download, ArrowUpDown, ArrowUp, ArrowDown, ArrowLeft, ArrowUpRight, X, Building, Monitor, CreditCard, RefreshCw, CheckCircle, Calendar, CalendarDays, DollarSign, GraduationCap, ChevronDown, Activity, Laptop, Check, ChevronsUpDown } from 'lucide-react';
+import { Search, Plus, ArrowUpDown, ArrowUp, ArrowDown, ArrowLeft, ArrowUpRight, X, Building, Monitor, CreditCard, RefreshCw, CheckCircle, Calendar, CalendarDays, DollarSign, GraduationCap, ChevronDown, Activity, Laptop, Check, ChevronsUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -869,9 +869,9 @@ export default function CourseManagement() {
                 className="w-[80px] h-8 text-xs"
               />
 
-              {/* Clear All Filters & Export Buttons */}
-              <div className="flex items-center gap-2 ml-auto">
-                {hasActiveFilters && (
+              {/* Clear All Filters Button */}
+              {hasActiveFilters && (
+                <div className="flex items-center gap-2 ml-auto">
                   <Button 
                     variant="ghost" 
                     size="sm"
@@ -881,12 +881,8 @@ export default function CourseManagement() {
                     <X className="h-4 w-4 mr-1" />
                     Clear All Filters
                   </Button>
-                )}
-                <Button variant="outline" size="sm" className="h-8 text-xs">
-                  <Download className="h-4 w-4 mr-1" />
-                  Export
-                </Button>
-              </div>
+                </div>
+              )}
             </div>
 
             {/* Results Count */}
