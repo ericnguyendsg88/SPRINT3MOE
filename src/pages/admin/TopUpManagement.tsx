@@ -1757,7 +1757,7 @@ export default function TopUpManagement() {
                     checked={batchTargeting === 'everyone'}
                     onCheckedChange={() => setBatchTargeting('everyone')}
                   />
-                  <Label htmlFor="target-everyone" className="font-normal cursor-pointer">Everyone</Label>
+                  <Label htmlFor="target-everyone" className="font-normal cursor-pointer">Every Education Account</Label>
                 </div>
                 <div className="flex items-center gap-2">
                   <Checkbox
