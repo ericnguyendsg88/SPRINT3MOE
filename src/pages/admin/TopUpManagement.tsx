@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Users, User, Trash2, ChevronDown, ChevronLeft, ChevronRight, X, ArrowUpDown, ArrowUp, ArrowDown, CalendarClock, Calendar } from 'lucide-react';
+import { Plus, Search, Users, User, Trash2, ChevronDown, ChevronLeft, ChevronRight, X, ArrowUpDown, ArrowUp, ArrowDown, CalendarClock, Calendar, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
 import { DateInput } from '@/components/ui/date-input';
 import { DataTable } from '@/components/shared/DataTable';
@@ -1892,7 +1893,25 @@ export default function TopUpManagement() {
                     </div>
                   </div>
 
-                  {/* Matching accounts info shown in preview */}
+                  {/* Eligible Accounts Counter */}
+                  <div className="mt-4 p-4 bg-muted/50 rounded-lg">
+                    <div className="flex items-center gap-2 text-sm mb-2">
+                      <Users className="h-4 w-4 text-muted-foreground" />
+                      <span className="font-medium">
+                        Eligible Accounts: <span className="text-foreground">{getTargetedAccounts().length}</span>
+                      </span>
+                    </div>
+                    
+                    {getTargetedAccounts().length === 0 && (
+                      <Alert variant="destructive" className="mt-2">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertTitle>No eligible accounts</AlertTitle>
+                        <AlertDescription>
+                          Your current criteria don't match any accounts. Please adjust the filters to continue.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -1938,7 +1957,19 @@ export default function TopUpManagement() {
             </Button>
             <Button 
               variant="accent" 
-              onClick={() => setShowBatchPreview(true)}
+              onClick={() => {
+                // Validate that there are eligible accounts for customized targeting
+                if (batchTargeting === 'customized') {
+                  const eligibleAccounts = getTargetedAccounts();
+                  if (eligibleAccounts.length === 0) {
+                    toast.error('No eligible accounts found', {
+                      description: 'Please adjust your targeting criteria. No accounts currently match the selected filters.',
+                    });
+                    return;
+                  }
+                }
+                setShowBatchPreview(true);
+              }}
               disabled={!batchRuleName || !batchAmount || !batchDescription || (!executeNow && (!scheduleDate || !scheduleTime))}
             >
               Preview & Continue
