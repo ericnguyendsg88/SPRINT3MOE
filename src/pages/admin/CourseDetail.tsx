@@ -13,6 +13,7 @@ import { useCourse, useUpdateCourse, useDeleteCourse } from '@/hooks/useCourses'
 import { useEnrollments, useCreateEnrollment, useDeleteEnrollment } from '@/hooks/useEnrollments';
 import { useAccountHolders } from '@/hooks/useAccountHolders';
 import { useCourseCharges, useCreateCourseCharge } from '@/hooks/useCourseCharges';
+import { useProviders } from '@/contexts/ProvidersContext';
 //import { formatCurrency } from '@/lib/utils';
 import {
   Select,
@@ -91,11 +92,19 @@ export default function CourseDetail() {
   const { data: enrollments = [] } = useEnrollments();
   const { data: accountHolders = [] } = useAccountHolders();
   const { data: courseCharges = [] } = useCourseCharges();
+  const { providers } = useProviders();
   const updateCourseMutation = useUpdateCourse();
   const deleteCourseMutation = useDeleteCourse();
   const createEnrollmentMutation = useCreateEnrollment();
   const deleteEnrollmentMutation = useDeleteEnrollment();
   const createCourseChargeMutation = useCreateCourseCharge();
+
+  // Helper to get allowed education levels for the course provider
+  const getAllowedEducationLevels = () => {
+    if (!course) return [];
+    const provider = providers.find(p => p.name === course.provider);
+    return provider?.educationLevels || [];
+  };
 
   // Helper to calculate due date based on course billing settings and enrollment date
   const calculateDueDate = (enrollmentDate: Date = new Date()) => {
@@ -665,11 +674,21 @@ export default function CourseDetail() {
                             <SelectValue placeholder="Select education level" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="primary">Primary</SelectItem>
-                            <SelectItem value="secondary">Secondary</SelectItem>
-                            <SelectItem value="post_secondary">Post-Secondary</SelectItem>
-                            <SelectItem value="tertiary">Tertiary</SelectItem>
-                            <SelectItem value="postgraduate">Postgraduate</SelectItem>
+                            {getAllowedEducationLevels().includes('primary') && (
+                              <SelectItem value="primary">Primary</SelectItem>
+                            )}
+                            {getAllowedEducationLevels().includes('secondary') && (
+                              <SelectItem value="secondary">Secondary</SelectItem>
+                            )}
+                            {getAllowedEducationLevels().includes('post_secondary') && (
+                              <SelectItem value="post_secondary">Post-Secondary</SelectItem>
+                            )}
+                            {getAllowedEducationLevels().includes('tertiary') && (
+                              <SelectItem value="tertiary">Tertiary</SelectItem>
+                            )}
+                            {getAllowedEducationLevels().includes('postgraduate') && (
+                              <SelectItem value="postgraduate">Postgraduate</SelectItem>
+                            )}
                           </SelectContent>
                         </Select>
                       </div>
