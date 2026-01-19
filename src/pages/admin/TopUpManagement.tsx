@@ -1894,23 +1894,21 @@ export default function TopUpManagement() {
                   </div>
 
                   {/* Eligible Accounts Counter */}
-                  <div className="mt-4 p-4 bg-muted/50 rounded-lg">
-                    <div className="flex items-center gap-2 text-sm mb-2">
-                      <Users className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">
-                        Eligible Accounts: <span className="text-foreground">{getTargetedAccounts().length}</span>
-                      </span>
+                  <div className="mt-4 p-3 bg-muted/30 rounded-lg border">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm font-medium">
+                          Eligible Accounts: <span className={getTargetedAccounts().length === 0 ? "text-destructive" : "text-foreground"}>{getTargetedAccounts().length}</span>
+                        </span>
+                      </div>
+                      {getTargetedAccounts().length === 0 && (
+                        <div className="flex items-center gap-1.5 text-destructive">
+                          <AlertCircle className="h-4 w-4" />
+                          <span className="text-xs font-medium">Adjust filters</span>
+                        </div>
+                      )}
                     </div>
-                    
-                    {getTargetedAccounts().length === 0 && (
-                      <Alert variant="destructive" className="mt-2">
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertTitle>No eligible accounts</AlertTitle>
-                        <AlertDescription>
-                          Your current criteria don't match any accounts. Please adjust the filters to continue.
-                        </AlertDescription>
-                      </Alert>
-                    )}
                   </div>
                 </div>
               )}
@@ -1970,7 +1968,13 @@ export default function TopUpManagement() {
                 }
                 setShowBatchPreview(true);
               }}
-              disabled={!batchRuleName || !batchAmount || !batchDescription || (!executeNow && (!scheduleDate || !scheduleTime))}
+              disabled={
+                !batchRuleName || 
+                !batchAmount || 
+                !batchDescription || 
+                (!executeNow && (!scheduleDate || !scheduleTime)) ||
+                (batchTargeting === 'customized' && getTargetedAccounts().length === 0)
+              }
             >
               Preview & Continue
             </Button>
