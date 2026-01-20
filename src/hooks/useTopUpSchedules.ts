@@ -8,7 +8,7 @@ export interface TopUpSchedule {
   scheduled_date: string;
   scheduled_time: string | null;
   executed_date: string | null;
-  status: 'scheduled' | 'processing' | 'completed' | 'failed';
+  status: 'scheduled' | 'processing' | 'completed' | 'failed' | 'cancelled';
   amount: number;
   rule_id: string | null;
   rule_name: string | null;
