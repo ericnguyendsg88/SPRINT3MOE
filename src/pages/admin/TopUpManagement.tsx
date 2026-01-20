@@ -2230,48 +2230,50 @@ export default function TopUpManagement() {
                         <p className="font-medium capitalize">{targetingType === 'everyone' ? 'All Education Accounts' : 'Customized Criteria'}</p>
                       </div>
                       
-                      {targetingType === 'customized' && criteria && (
+                      {targetingType === 'customized' && (
                         <div className="space-y-2 pt-2 border-t border-blue-200 dark:border-blue-800">
                           <p className="text-xs text-blue-700 dark:text-blue-300 font-medium">Criteria Applied:</p>
                           <div className="grid grid-cols-2 gap-3">
-                            {(criteria.minAge || criteria.maxAge) && (
-                              <div>
-                                <p className="text-xs text-muted-foreground">Age Range</p>
-                                <p className="font-medium text-sm">
-                                  {criteria.minAge && criteria.maxAge 
+                            <div>
+                              <p className="text-xs text-muted-foreground">Age Range</p>
+                              <p className="font-medium text-sm">
+                                {criteria?.minAge || criteria?.maxAge
+                                  ? (criteria.minAge && criteria.maxAge 
                                     ? `${criteria.minAge} - ${criteria.maxAge} years`
                                     : criteria.minAge 
                                     ? `${criteria.minAge}+ years`
-                                    : `Up to ${criteria.maxAge} years`}
-                                </p>
-                              </div>
-                            )}
-                            {(criteria.minBalance || criteria.maxBalance) && (
-                              <div>
-                                <p className="text-xs text-muted-foreground">Balance Range</p>
-                                <p className="font-medium text-sm">
-                                  {criteria.minBalance && criteria.maxBalance 
+                                    : `Up to ${criteria.maxAge} years`)
+                                  : '—'}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground">Balance Range</p>
+                              <p className="font-medium text-sm">
+                                {criteria?.minBalance || criteria?.maxBalance
+                                  ? (criteria.minBalance && criteria.maxBalance 
                                     ? `S$${formatCurrency(criteria.minBalance)} - S$${formatCurrency(criteria.maxBalance)}`
                                     : criteria.minBalance 
                                     ? `S$${formatCurrency(criteria.minBalance)}+`
-                                    : `Up to S$${formatCurrency(criteria.maxBalance)}`}
-                                </p>
-                              </div>
-                            )}
-                            {criteria.educationStatus && criteria.educationStatus.length > 0 && (
-                              <div>
-                                <p className="text-xs text-muted-foreground">Education Level</p>
-                                <p className="font-medium text-sm capitalize">{criteria.educationStatus.join(', ')}</p>
-                              </div>
-                            )}
-                            {criteria.schoolingStatus && criteria.schoolingStatus !== 'all' && (
-                              <div>
-                                <p className="text-xs text-muted-foreground">Schooling Status</p>
-                                <p className="font-medium text-sm capitalize">
-                                  {criteria.schoolingStatus === 'in_school' ? 'In School' : 'Not in School'}
-                                </p>
-                              </div>
-                            )}
+                                    : `Up to S$${formatCurrency(criteria.maxBalance)}`)
+                                  : '—'}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground">Education Level</p>
+                              <p className="font-medium text-sm capitalize">
+                                {criteria?.educationStatus && criteria.educationStatus.length > 0
+                                  ? criteria.educationStatus.join(', ')
+                                  : '—'}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground">Schooling Status</p>
+                              <p className="font-medium text-sm capitalize">
+                                {criteria?.schoolingStatus && criteria.schoolingStatus !== 'all'
+                                  ? (criteria.schoolingStatus === 'in_school' ? 'In School' : 'Not in School')
+                                  : '—'}
+                              </p>
+                            </div>
                           </div>
                         </div>
                       )}
