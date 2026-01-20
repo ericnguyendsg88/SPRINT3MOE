@@ -293,9 +293,17 @@ export default function AdminDashboard() {
     { 
       key: 'name', 
       header: individualColumns.find(c => c.key === 'name')?.header || 'Name',
-      render: (item: typeof topUpSchedules[0]) => (
-        <p className="font-medium text-foreground">{item.account_name}</p>
-      )
+      render: (item: typeof topUpSchedules[0]) => {
+        const account = accountHolders.find(acc => acc.id === item.account_id);
+        return (
+          <div>
+            <p className="font-medium text-foreground">{item.account_name}</p>
+            {account && (
+              <p className="text-xs text-muted-foreground">{account.nric}</p>
+            )}
+          </div>
+        );
+      }
     },
     { 
       key: 'amount', 
