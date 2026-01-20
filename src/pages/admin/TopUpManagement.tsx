@@ -1637,12 +1637,10 @@ export default function TopUpManagement() {
                       <span className="text-sm font-medium text-muted-foreground">Description</span>
                       <span className="text-sm font-medium text-right max-w-[60%]">{topUpDescription}</span>
                     </div>
-                    {topUpInternalRemark && (
-                      <div className="flex justify-between items-start">
-                        <span className="text-sm font-medium text-muted-foreground">Internal Remark</span>
-                        <span className="text-sm font-medium text-right max-w-[60%] text-orange-600">{topUpInternalRemark}</span>
-                      </div>
-                    )}
+                    <div className="flex justify-between items-start">
+                      <span className="text-sm font-medium text-muted-foreground">Internal Remark</span>
+                      <span className="text-sm font-medium text-right max-w-[60%] text-orange-600">{topUpInternalRemark || '—'}</span>
+                    </div>
                     <div className="flex justify-between items-start">
                       <span className="text-sm font-medium text-muted-foreground">Amount per Account</span>
                       <span className="text-sm font-bold text-success">+S${formatCurrency(parseFloat(topUpAmount))}</span>
@@ -1753,7 +1751,7 @@ export default function TopUpManagement() {
                     checked={batchTargeting === 'everyone'}
                     onCheckedChange={() => setBatchTargeting('everyone')}
                   />
-                  <Label htmlFor="target-everyone" className="font-normal cursor-pointer">Every Education Account</Label>
+                  <Label htmlFor="target-everyone" className="font-normal cursor-pointer">All Education Accounts</Label>
                 </div>
                 <div className="flex items-center gap-2">
                   <Checkbox
@@ -2001,6 +1999,10 @@ export default function TopUpManagement() {
               <div className="col-span-2">
                 <p className="text-xs text-muted-foreground">Description</p>
                 <p className="font-medium">{batchDescription}</p>
+              </div>
+              <div className="col-span-2">
+                <p className="text-xs text-muted-foreground">Internal Remark</p>
+                <p className="font-medium text-orange-600">{batchInternalRemark || '—'}</p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Targeting</p>
