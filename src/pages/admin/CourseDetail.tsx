@@ -186,7 +186,7 @@ export default function CourseDetail() {
     { key: 'course_start', label: 'Course Period', visible: true, order: 4 },
     { key: 'course_end', label: 'Course End', visible: true, order: 5 },
     { key: 'billing_cycle', label: 'Billing Cycle', visible: true, order: 6 },
-    { key: 'billing_day', label: 'Billing Day', visible: true, order: 7 },
+    { key: 'billing_day', label: 'Billing Schedule', visible: true, order: 7 },
     { key: 'payment_due', label: 'Payment Due', visible: true, order: 8 },
     { key: 'status', label: 'Course Status', visible: true, order: 9 },
     { key: 'fee', label: 'Fee per Cycle', visible: true, order: 10 },
@@ -630,8 +630,8 @@ export default function CourseDetail() {
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {visibleFields.map((field) => {
-                      // Skip course_end as it will be rendered together with course_start
-                      if (field.key === 'course_end') return null;
+                      // Skip course_end and payment_due as they will be rendered together with course_start and billing_day
+                      if (field.key === 'course_end' || field.key === 'payment_due') return null;
                       
                       const fieldConfig: Record<string, { icon: React.ReactNode; value: React.ReactNode; fullWidth?: boolean }> = {
                         name: {
@@ -684,11 +684,23 @@ export default function CourseDetail() {
                         },
                         billing_day: {
                           icon: <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />,
-                          value: getPaymentType() === 'One Time' ? '—' : (course.billing_date ? `${getOrdinalSuffix(course.billing_date)} of the month` : '5th of the month'),
-                        },
-                        payment_due: {
-                          icon: <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />,
-                          value: getPaymentType() === 'One Time' ? '—' : (course.billing_due_date ? `${course.billing_due_date} days after billing` : '30 days after billing'),
+                          value: (
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <p className="text-sm text-muted-foreground mb-1">Billing Day</p>
+                                <p className="font-medium">
+                                  {getPaymentType() === 'One Time' ? '—' : (course.billing_date ? `${getOrdinalSuffix(course.billing_date)} of the month` : '5th of the month')}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-sm text-muted-foreground mb-1">Payment Due</p>
+                                <p className="font-medium">
+                                  {getPaymentType() === 'One Time' ? '—' : (course.billing_due_date ? `${course.billing_due_date} days after billing` : '30 days after billing')}
+                                </p>
+                              </div>
+                            </div>
+                          ),
+                          fullWidth: true,
                         },
                         status: {
                           icon: <CheckCircle className="h-5 w-5 text-muted-foreground mt-0.5" />,
@@ -706,6 +718,20 @@ export default function CourseDetail() {
                       
                       // Special rendering for course_start which includes course_end
                       if (field.key === 'course_start') {
+                        return (
+                          <div key={field.key} className="md:col-span-2">
+                            <div className="flex items-start gap-3">
+                              {config.icon}
+                              <div className="flex-1">
+                                {config.value}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
+                      
+                      // Special rendering for billing_day which includes payment_due
+                      if (field.key === 'billing_day') {
                         return (
                           <div key={field.key} className="md:col-span-2">
                             <div className="flex items-start gap-3">
