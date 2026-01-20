@@ -252,14 +252,17 @@ export default function AdminDashboard() {
     { 
       key: 'ruleName', 
       header: batchColumns.find(c => c.key === 'ruleName')?.header || 'Rule Name',
-      render: (item: typeof topUpSchedules[0]) => (
-        <div>
-          <p className="font-medium text-foreground">{item.rule_name}</p>
-          {item.eligible_count && (
-            <p className="text-xs text-muted-foreground">{item.eligible_count} accounts</p>
-          )}
-        </div>
-      )
+      render: (item: typeof topUpSchedules[0]) => {
+        const eligibleCount = getEligibleAccountsForBatch(item.remarks).length;
+        return (
+          <div>
+            <p className="font-medium text-foreground">{item.rule_name}</p>
+            {eligibleCount > 0 && (
+              <p className="text-xs text-muted-foreground">{eligibleCount} accounts</p>
+            )}
+          </div>
+        );
+      }
     },
     { 
       key: 'amount', 
@@ -675,9 +678,9 @@ export default function AdminDashboard() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-xs text-muted-foreground mb-1">Targeted Accounts</p>
-                      <p className="font-medium text-foreground">{selectedBatchDetail.eligible_count || 0} accounts</p>
+                      <p className="font-medium text-foreground">{getEligibleAccountsForBatch(selectedBatchDetail.remarks).length} accounts</p>
                     </div>
-                    {selectedBatchDetail.eligible_count > 0 && (
+                    {getEligibleAccountsForBatch(selectedBatchDetail.remarks).length > 0 && (
                       <Button
                         variant="outline"
                         size="sm"
@@ -735,10 +738,10 @@ export default function AdminDashboard() {
                 <div className="p-4 bg-primary/5 rounded-lg border border-primary/20">
                   <p className="text-xs text-muted-foreground mb-1">Total Disbursement</p>
                   <p className="text-2xl font-bold text-primary">
-                    S${formatCurrency(Number(selectedBatchDetail.amount) * (selectedBatchDetail.eligible_count || 0))}
+                    S${formatCurrency(Number(selectedBatchDetail.amount) * getEligibleAccountsForBatch(selectedBatchDetail.remarks).length)}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {selectedBatchDetail.eligible_count || 0} accounts × S${formatCurrency(Number(selectedBatchDetail.amount))}
+                    {getEligibleAccountsForBatch(selectedBatchDetail.remarks).length} accounts × S${formatCurrency(Number(selectedBatchDetail.amount))}
                   </p>
                 </div>
 
