@@ -182,9 +182,9 @@ export default function CourseDetail() {
     { key: 'name', label: 'Course Name', visible: true, order: 0 },
     { key: 'provider', label: 'Provider', visible: true, order: 1 },
     { key: 'education_level', label: 'Education Level', visible: true, order: 2 },
-    { key: 'course_start', label: 'Course Start', visible: true, order: 3 },
-    { key: 'course_end', label: 'Course End', visible: true, order: 4 },
-    { key: 'payment_type', label: 'Payment Type', visible: true, order: 5 },
+    { key: 'payment_type', label: 'Payment Type', visible: true, order: 3 },
+    { key: 'course_start', label: 'Course Period', visible: true, order: 4 },
+    { key: 'course_end', label: 'Course End', visible: true, order: 5 },
     { key: 'billing_cycle', label: 'Billing Cycle', visible: true, order: 6 },
     { key: 'billing_day', label: 'Billing Day', visible: true, order: 7 },
     { key: 'payment_due', label: 'Payment Due', visible: true, order: 8 },
@@ -630,7 +630,10 @@ export default function CourseDetail() {
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {visibleFields.map((field) => {
-                      const fieldConfig: Record<string, { icon: React.ReactNode; value: React.ReactNode }> = {
+                      // Skip course_end as it will be rendered together with course_start
+                      if (field.key === 'course_end') return null;
+                      
+                      const fieldConfig: Record<string, { icon: React.ReactNode; value: React.ReactNode; fullWidth?: boolean }> = {
                         name: {
                           icon: <GraduationCap className="h-5 w-5 text-muted-foreground mt-0.5" />,
                           value: course.name,
@@ -643,25 +646,37 @@ export default function CourseDetail() {
                           icon: <GraduationCap className="h-5 w-5 text-muted-foreground mt-0.5" />,
                           value: course.education_level ? educationLevelLabels[course.education_level] : 'Not Set',
                         },
-                        mode_of_training: {
-                          icon: <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />,
-                          value: <span className="capitalize">{course.mode_of_training || 'Online'}</span>,
-                        },
-                        course_start: {
-                          icon: <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />,
-                          value: course.course_run_start 
-                            ? new Date(course.course_run_start).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
-                            : 'Not set',
-                        },
-                        course_end: {
-                          icon: <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />,
-                          value: course.course_run_end 
-                            ? new Date(course.course_run_end).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
-                            : 'Ongoing',
-                        },
                         payment_type: {
                           icon: <CreditCard className="h-5 w-5 text-muted-foreground mt-0.5" />,
                           value: getPaymentType() === 'One Time' ? 'One Time' : 'Recurring',
+                        },
+                        course_start: {
+                          icon: <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />,
+                          value: (
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <p className="text-sm text-muted-foreground mb-1">Course Start</p>
+                                <p className="font-medium">
+                                  {course.course_run_start 
+                                    ? new Date(course.course_run_start).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                                    : 'Not set'}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-sm text-muted-foreground mb-1">Course End</p>
+                                <p className="font-medium">
+                                  {course.course_run_end 
+                                    ? new Date(course.course_run_end).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                                    : 'Ongoing'}
+                                </p>
+                              </div>
+                            </div>
+                          ),
+                          fullWidth: true,
+                        },
+                        mode_of_training: {
+                          icon: <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />,
+                          value: <span className="capitalize">{course.mode_of_training || 'Online'}</span>,
                         },
                         billing_cycle: {
                           icon: <RefreshCw className="h-5 w-5 text-muted-foreground mt-0.5" />,
@@ -688,6 +703,20 @@ export default function CourseDetail() {
                       };
                       const config = fieldConfig[field.key];
                       if (!config) return null;
+                      
+                      // Special rendering for course_start which includes course_end
+                      if (field.key === 'course_start') {
+                        return (
+                          <div key={field.key} className="md:col-span-2">
+                            <div className="flex items-start gap-3">
+                              {config.icon}
+                              <div className="flex-1">
+                                {config.value}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
                       
                       return (
                         <div key={field.key} className="flex items-start gap-3">
