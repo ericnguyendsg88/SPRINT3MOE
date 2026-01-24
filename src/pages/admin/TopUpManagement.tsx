@@ -77,7 +77,7 @@ export default function TopUpManagement() {
   const [minBalance, setMinBalance] = useState('');
   const [maxBalance, setMaxBalance] = useState('');
   const [selectedEducationStatus, setSelectedEducationStatus] = useState<string[]>([]);
-  const [schoolingStatus, setSchoolingStatus] = useState<'all' | 'in_school' | 'not_in_school'>('all');
+  const [schoolingStatus, setSchoolingStatus] = useState<'in_school' | 'not_in_school' | ''>('');
   
   // Preview and matching accounts state
   const [showIndividualPreview, setShowIndividualPreview] = useState(false);
@@ -319,7 +319,7 @@ export default function TopUpManagement() {
     }
 
     // Schooling status filter
-    if (schoolingStatus !== 'all') {
+    if (schoolingStatus) {
       targeted = targeted.filter(account => {
         const inSchool = isAccountInSchool(account.id);
         return schoolingStatus === 'in_school' ? inSchool : !inSchool;
@@ -385,7 +385,7 @@ export default function TopUpManagement() {
       }
       
       // Schooling status filter
-      if (criteria.schoolingStatus !== 'all') {
+      if (criteria.schoolingStatus && criteria.schoolingStatus !== '') {
         targeted = targeted.filter(account => {
           const inSchool = isAccountInSchool(account.id);
           return criteria.schoolingStatus === 'in_school' ? inSchool : !inSchool;
@@ -573,7 +573,7 @@ export default function TopUpManagement() {
       setMinBalance('');
       setMaxBalance('');
       setSelectedEducationStatus([]);
-      setSchoolingStatus('all');
+      setSchoolingStatus('');
     } catch (error) {
       // Error handled by mutation
     }
@@ -1864,17 +1864,9 @@ export default function TopUpManagement() {
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <Checkbox
-                          id="school-all"
-                          checked={schoolingStatus === 'all'}
-                          onCheckedChange={() => setSchoolingStatus('all')}
-                        />
-                        <Label htmlFor="school-all" className="text-sm font-normal cursor-pointer">All</Label>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Checkbox
                           id="school-in"
                           checked={schoolingStatus === 'in_school'}
-                          onCheckedChange={() => setSchoolingStatus('in_school')}
+                          onCheckedChange={(checked) => setSchoolingStatus(checked ? 'in_school' : '')}
                         />
                         <Label htmlFor="school-in" className="text-sm font-normal cursor-pointer">In School (has active enrollment)</Label>
                       </div>
@@ -1882,28 +1874,10 @@ export default function TopUpManagement() {
                         <Checkbox
                           id="school-not"
                           checked={schoolingStatus === 'not_in_school'}
-                          onCheckedChange={() => setSchoolingStatus('not_in_school')}
+                          onCheckedChange={(checked) => setSchoolingStatus(checked ? 'not_in_school' : '')}
                         />
                         <Label htmlFor="school-not" className="text-sm font-normal cursor-pointer">Not In School</Label>
                       </div>
-                    </div>
-                  </div>
-
-                  {/* Eligible Accounts Counter */}
-                  <div className="mt-4 p-3 bg-muted/30 rounded-lg border">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Users className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm font-medium">
-                          Eligible Accounts: <span className={getTargetedAccounts().length === 0 ? "text-destructive" : "text-foreground"}>{getTargetedAccounts().length}</span>
-                        </span>
-                      </div>
-                      {getTargetedAccounts().length === 0 && (
-                        <div className="flex items-center gap-1.5 text-destructive">
-                          <AlertCircle className="h-4 w-4" />
-                          <span className="text-xs font-medium">No eligible accounts, adjust criteria to continue</span>
-                        </div>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -1952,12 +1926,14 @@ export default function TopUpManagement() {
             <Button 
               variant="accent" 
               onClick={() => {
-                // Validate that there are eligible accounts for customized targeting
+                // Validate that at least one criteria is set for customized targeting
                 if (batchTargeting === 'customized') {
-                  const eligibleAccounts = getTargetedAccounts();
-                  if (eligibleAccounts.length === 0) {
-                    toast.error('No eligible accounts found', {
-                      description: 'Please adjust your targeting criteria. No accounts currently match the selected filters.',
+                  const hasCriteria = minAge || maxAge || minBalance || maxBalance || 
+                    selectedEducationStatus.length > 0 || schoolingStatus;
+                  
+                  if (!hasCriteria) {
+                    toast.error('No targeting criteria set', {
+                      description: 'Please configure at least one targeting criteria (age range, balance range, education status, or schooling status).',
                     });
                     return;
                   }
@@ -1968,8 +1944,7 @@ export default function TopUpManagement() {
                 !batchRuleName || 
                 !batchAmount || 
                 !batchDescription || 
-                (!executeNow && (!scheduleDate || !scheduleTime)) ||
-                (batchTargeting === 'customized' && getTargetedAccounts().length === 0)
+                (!executeNow && (!scheduleDate || !scheduleTime))
               }
             >
               Preview & Continue
@@ -2038,6 +2013,47 @@ export default function TopUpManagement() {
                 </div>
               </div>
             )}
+
+            {/* Targeting Criteria Details (only for customized targeting) */}
+            {batchTargeting === 'customized' && (
+              <div className="p-4 bg-muted/50 rounded-lg space-y-3">
+                <p className="text-sm font-medium text-foreground mb-3">Targeting Criteria</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Min Age</p>
+                    <p className="font-medium text-sm">{minAge || '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Max Age</p>
+                    <p className="font-medium text-sm">{maxAge || '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Min Balance</p>
+                    <p className="font-medium text-sm">{minBalance ? `S$${formatCurrency(parseFloat(minBalance))}` : '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Max Balance</p>
+                    <p className="font-medium text-sm">{maxBalance ? `S$${formatCurrency(parseFloat(maxBalance))}` : '—'}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <p className="text-xs text-muted-foreground">Education Status</p>
+                    <p className="font-medium text-sm capitalize">
+                      {selectedEducationStatus.length > 0 
+                        ? selectedEducationStatus.map(s => s === 'none' ? 'None / Not Set' : s.replace('_', ' ')).join(', ')
+                        : '—'}
+                    </p>
+                  </div>
+                  <div className="col-span-2">
+                    <p className="text-xs text-muted-foreground">Schooling Status</p>
+                    <p className="font-medium text-sm">
+                      {schoolingStatus 
+                        ? (schoolingStatus === 'in_school' ? 'In School (has active enrollment)' : 'Not In School')
+                        : '—'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
             
             {/* Eligible Accounts Section (only for customized targeting) */}
             {batchTargeting === 'customized' && (
@@ -2081,10 +2097,17 @@ export default function TopUpManagement() {
             <Button 
               variant="accent" 
               onClick={async () => {
+                const eligibleAccounts = getTargetedAccounts();
+                if (eligibleAccounts.length === 0) {
+                  toast.error('No eligible accounts found', {
+                    description: 'The current targeting criteria resulted in 0 eligible accounts. Please go back and readjust your criteria to continue.',
+                  });
+                  return;
+                }
                 await handleBatchTopUp();
                 setShowBatchPreview(false);
               }}
-              disabled={createScheduleMutation.isPending}
+              disabled={createScheduleMutation.isPending || getTargetedAccounts().length === 0}
             >
               {createScheduleMutation.isPending ? 'Processing...' : 'Confirm & Submit'}
             </Button>
@@ -2269,7 +2292,7 @@ export default function TopUpManagement() {
                             <div>
                               <p className="text-xs text-muted-foreground">Schooling Status</p>
                               <p className="font-medium text-sm capitalize">
-                                {criteria?.schoolingStatus && criteria.schoolingStatus !== 'all'
+                                {criteria?.schoolingStatus && criteria.schoolingStatus !== ''
                                   ? (criteria.schoolingStatus === 'in_school' ? 'In School' : 'Not in School')
                                   : '—'}
                               </p>
